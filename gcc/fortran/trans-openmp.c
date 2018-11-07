@@ -2949,13 +2949,6 @@ gfc_trans_omp_clauses (stmtblock_t *block, gfc_omp_clauses *clauses,
 	  omp_clauses = c;
 	}
     }
-  else if (clauses->wait)
-    {
-      c = build_omp_clause (where.lb->location, OMP_CLAUSE_WAIT);
-      OMP_CLAUSE_DECL (c) = build_int_cst (integer_type_node, GOMP_ASYNC_NOVAL);
-      OMP_CLAUSE_CHAIN (c) = omp_clauses;
-      omp_clauses = c;
-    }
   if (clauses->num_gangs_expr)
     {
       tree num_gangs_var
