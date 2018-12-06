@@ -464,8 +464,12 @@ OACC_2.5 {
 	acc_delete_finalize_async_32_h_;
 	acc_delete_finalize_async_64_h_;
 	acc_delete_finalize_async_array_h_;
+	acc_get_default_async;
+	acc_get_default_async_h_;
 	acc_memcpy_from_device_async;
 	acc_memcpy_to_device_async;
+	acc_set_default_async;
+	acc_set_default_async_h_;
 	acc_update_device_async;
 	acc_update_device_async_32_h_;
 	acc_update_device_async_64_h_;
@@ -502,7 +506,6 @@ GOMP_PLUGIN_1.0 {
 	GOMP_PLUGIN_debug;
 	GOMP_PLUGIN_error;
 	GOMP_PLUGIN_fatal;
-	GOMP_PLUGIN_async_unmap_vars;
 	GOMP_PLUGIN_acc_thread;
 };
 
