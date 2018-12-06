@@ -426,8 +426,6 @@ goacc_attach_host_thread_to_device (int ord)
   
   thr->target_tls
     = acc_dev->openacc.create_thread_data_func (ord);
-
-  thr->default_async = acc_async_default;
 }
 
 /* OpenACC 2.0a (3.2.12, 3.2.13) doesn't specify whether the serialization of

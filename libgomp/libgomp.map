@@ -464,12 +464,8 @@ OACC_2.5 {
 	acc_delete_finalize_async_32_h_;
 	acc_delete_finalize_async_64_h_;
 	acc_delete_finalize_async_array_h_;
-	acc_get_default_async;
-	acc_get_default_async_h_;
 	acc_memcpy_from_device_async;
 	acc_memcpy_to_device_async;
-	acc_set_default_async;
-	acc_set_default_async_h_;
 	acc_update_device_async;
 	acc_update_device_async_32_h_;
 	acc_update_device_async_64_h_;

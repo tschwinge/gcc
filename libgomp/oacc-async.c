@@ -60,7 +60,7 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
   /* The special value acc_async_noval (-1) maps to the thread-specific
      default async stream.  */
   if (async == acc_async_noval)
-    async = thr->default_async;
+    async = 0; //TODO thr->default_async;
 
   if (async == acc_async_sync)
     return NULL;
@@ -241,23 +241,6 @@ acc_wait_all_async (int async)
 
   if (!ret)
     gomp_fatal ("wait all async(%d) failed", async);
-}
-
-int
-acc_get_default_async (void)
-{
-  struct goacc_thread *thr = get_goacc_thread ();
-  return thr->default_async;
-}
-
-void
-acc_set_default_async (int async)
-{
-  if (async < acc_async_sync)
-    gomp_fatal ("invalid async argument: %d", async);
-
-  struct goacc_thread *thr = get_goacc_thread ();
-  thr->default_async = async;
 }
 
 attribute_hidden void
