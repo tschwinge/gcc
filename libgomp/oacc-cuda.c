@@ -62,7 +62,11 @@ acc_get_cuda_stream (int async)
     return NULL;
 
   if (thr && thr->dev && thr->dev->openacc.cuda.get_stream_func)
-    return thr->dev->openacc.cuda.get_stream_func (async);
+    {
+      goacc_aq aq = lookup_goacc_asyncqueue (thr, false, async);
+      if (aq)
+	return thr->dev->openacc.cuda.get_stream_func (aq);
+    }
  
   return NULL;
 }
@@ -79,8 +83,14 @@ acc_set_cuda_stream (int async, void *stream)
 
   thr = goacc_thread ();
 
+  int ret = -1;
   if (thr && thr->dev && thr->dev->openacc.cuda.set_stream_func)
-    return thr->dev->openacc.cuda.set_stream_func (async, stream);
+    {
+      goacc_aq aq = get_goacc_asyncqueue (async);
+      gomp_mutex_lock (&thr->dev->openacc.async.lock);
+      ret = thr->dev->openacc.cuda.set_stream_func (aq, stream);
+      gomp_mutex_unlock (&thr->dev->openacc.async.lock);
+    }
 
-  return -1;
+  return ret;
 }

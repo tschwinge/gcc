@@ -63,6 +63,7 @@ typedef enum acc_device_t {
 
 typedef enum acc_async_t {
   /* Keep in sync with include/gomp-constants.h.  */
+  acc_async_default = 0,
   acc_async_noval = -1,
   acc_async_sync  = -2
 } acc_async_t;
@@ -72,6 +73,8 @@ void acc_set_device_type (acc_device_t) __GOACC_NOTHROW;
 acc_device_t acc_get_device_type (void) __GOACC_NOTHROW;
 void acc_set_device_num (int, acc_device_t) __GOACC_NOTHROW;
 int acc_get_device_num (acc_device_t) __GOACC_NOTHROW;
+void acc_set_default_async (int) __GOACC_NOTHROW;
+int acc_get_default_async (void) __GOACC_NOTHROW;
 int acc_async_test (int) __GOACC_NOTHROW;
 int acc_async_test_all (void) __GOACC_NOTHROW;
 void acc_wait (int) __GOACC_NOTHROW;
