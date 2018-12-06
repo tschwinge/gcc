@@ -51,9 +51,10 @@ module openacc_kinds
 
   integer, parameter :: acc_handle_kind = int32
 
-  public :: acc_async_noval, acc_async_sync
+  public :: acc_async_default, acc_async_noval, acc_async_sync
 
   ! Keep in sync with include/gomp-constants.h.
+  integer (acc_handle_kind), parameter :: acc_async_default = 0
   integer (acc_handle_kind), parameter :: acc_async_noval = -1
   integer (acc_handle_kind), parameter :: acc_async_sync = -2
 
@@ -90,6 +91,16 @@ module openacc_internal
       import
       integer acc_get_device_num_h
       integer (acc_device_kind) d
+    end function
+
+    subroutine acc_set_default_async_h (a)
+      import
+      integer a
+    end subroutine
+
+    function acc_get_default_async_h ()
+      import
+      integer acc_get_default_async_h
     end function
 
     function acc_async_test_h (a)
@@ -720,6 +731,7 @@ module openacc
 
   public :: acc_get_num_devices, acc_set_device_type, acc_get_device_type
   public :: acc_set_device_num, acc_get_device_num, acc_async_test
+  public :: acc_set_default_async, acc_get_default_async
   public :: acc_async_test_all
   public :: acc_wait, acc_async_wait, acc_wait_async
   public :: acc_wait_all, acc_async_wait_all, acc_wait_all_async
@@ -750,6 +762,14 @@ module openacc
 
   interface acc_get_device_num
     procedure :: acc_get_device_num_h
+  end interface
+
+  interface acc_set_default_async
+    procedure :: acc_set_default_async_h
+  end interface
+
+  interface acc_get_default_async
+    procedure :: acc_get_default_async_h
   end interface
 
   interface acc_async_test

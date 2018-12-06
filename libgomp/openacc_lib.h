@@ -46,6 +46,7 @@
       integer, parameter :: acc_handle_kind = 4
 
 !     Keep in sync with include/gomp-constants.h.
+      integer (acc_handle_kind), parameter :: acc_async_default = 0
       integer (acc_handle_kind), parameter :: acc_async_noval = -1
       integer (acc_handle_kind), parameter :: acc_async_sync = -2
 
@@ -86,6 +87,18 @@
           import acc_device_kind
           integer acc_get_device_num_h
           integer (acc_device_kind) d
+        end function
+      end interface
+
+      interface acc_set_default_async
+        subroutine acc_set_default_async_h (a)
+          integer a
+        end subroutine
+      end interface
+
+      interface acc_get_default_async
+        function acc_get_default_async_h ()
+          integer acc_get_default_async_h
         end function
       end interface
 
