@@ -508,7 +508,9 @@ goacc_wait (int async, int num_waits, va_list *ap)
       struct goacc_thread *thr = goacc_thread ();
       struct gomp_device_descr *acc_dev = thr->dev;
 
-      goacc_aq aq = get_goacc_asyncqueue (qid);
+      goacc_aq aq = lookup_goacc_asyncqueue (thr, false, qid);
+      if (!aq)
+	continue;
       if (acc_dev->openacc.async.test_func (aq))
 	continue;
       if (async == acc_async_sync)

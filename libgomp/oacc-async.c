@@ -131,8 +131,11 @@ acc_async_test (int async)
   if (!thr || !thr->dev)
     gomp_fatal ("no device active");
 
-  goacc_aq aq = lookup_goacc_asyncqueue (thr, true, async);
-  return thr->dev->openacc.async.test_func (aq);
+  goacc_aq aq = lookup_goacc_asyncqueue (thr, false, async);
+  if (!aq)
+    return 1;
+  else
+    return thr->dev->openacc.async.test_func (aq);
 }
 
 int
@@ -160,8 +163,9 @@ acc_wait (int async)
 
   struct goacc_thread *thr = get_goacc_thread ();
 
-  goacc_aq aq = lookup_goacc_asyncqueue (thr, true, async);
-  thr->dev->openacc.async.synchronize_func (aq);
+  goacc_aq aq = lookup_goacc_asyncqueue (thr, false, async);
+  if (aq)
+    thr->dev->openacc.async.synchronize_func (aq);
 }
 
 /* acc_async_wait is an OpenACC 1.0 compatibility name for acc_wait.  */
