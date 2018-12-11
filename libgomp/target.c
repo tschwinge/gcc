@@ -511,22 +511,12 @@ gomp_map_val (struct target_mem_desc *tgt, void **hostaddrs, size_t i)
   return tgt->tgt_start + tgt->list[i].offset;
 }
 
-attribute_hidden struct target_mem_desc *
-gomp_map_vars (struct gomp_device_descr *devicep, size_t mapnum,
-	       void **hostaddrs, void **devaddrs, size_t *sizes, void *kinds,
-	       bool short_mapkind, enum gomp_map_vars_kind pragma_kind)
-{
-  struct target_mem_desc *tgt;
-  tgt = gomp_map_vars_async (devicep, NULL, mapnum, hostaddrs, devaddrs,
-			     sizes, kinds, short_mapkind, pragma_kind);
-  return tgt;
-}
-
-attribute_hidden struct target_mem_desc *
-gomp_map_vars_async (struct gomp_device_descr *devicep,
-		     struct goacc_asyncqueue *aq, size_t mapnum,
-		     void **hostaddrs, void **devaddrs, size_t *sizes, void *kinds,
-		     bool short_mapkind, enum gomp_map_vars_kind pragma_kind)
+static inline __attribute__((always_inline)) struct target_mem_desc *
+gomp_map_vars_internal (struct gomp_device_descr *devicep,
+			struct goacc_asyncqueue *aq, size_t mapnum,
+			void **hostaddrs, void **devaddrs, size_t *sizes,
+			void *kinds, bool short_mapkind,
+			enum gomp_map_vars_kind pragma_kind)
 {
   size_t i, tgt_align, tgt_size, not_found_cnt = 0;
   bool has_firstprivate = false;
@@ -1053,6 +1043,26 @@ gomp_map_vars_async (struct gomp_device_descr *devicep,
   return tgt;
 }
 
+attribute_hidden struct target_mem_desc *
+gomp_map_vars (struct gomp_device_descr *devicep, size_t mapnum,
+	       void **hostaddrs, void **devaddrs, size_t *sizes, void *kinds,
+	       bool short_mapkind, enum gomp_map_vars_kind pragma_kind)
+{
+  return gomp_map_vars_internal (devicep, NULL, mapnum, hostaddrs, devaddrs,
+				 sizes, kinds, short_mapkind, pragma_kind);
+}
+
+attribute_hidden struct target_mem_desc *
+gomp_map_vars_async (struct gomp_device_descr *devicep,
+		     struct goacc_asyncqueue *aq, size_t mapnum,
+		     void **hostaddrs, void **devaddrs, size_t *sizes,
+		     void *kinds, bool short_mapkind,
+		     enum gomp_map_vars_kind pragma_kind)
+{
+  return gomp_map_vars_internal (devicep, aq, mapnum, hostaddrs, devaddrs,
+				 sizes, kinds, short_mapkind, pragma_kind);
+}
+
 attribute_hidden void
 gomp_unmap_tgt (struct target_mem_desc *tgt)
 {
@@ -1085,15 +1095,9 @@ gomp_remove_var (struct gomp_device_descr *devicep, splay_tree_key k)
    variables back from device to host: if it is false, it is assumed that this
    has been done already.  */
 
-attribute_hidden void
-gomp_unmap_vars (struct target_mem_desc *tgt, bool do_copyfrom)
-{
-  gomp_unmap_vars_async (tgt, do_copyfrom, NULL);
-}
-
-attribute_hidden void
-gomp_unmap_vars_async (struct target_mem_desc *tgt, bool do_copyfrom,
-		       struct goacc_asyncqueue *aq)
+static inline __attribute__((always_inline)) void
+gomp_unmap_vars_internal (struct target_mem_desc *tgt, bool do_copyfrom,
+			  struct goacc_asyncqueue *aq)
 {
   struct gomp_device_descr *devicep = tgt->device_descr;
 
@@ -1145,6 +1149,19 @@ gomp_unmap_vars_async (struct target_mem_desc *tgt, bool do_copyfrom,
     gomp_unmap_tgt (tgt);
 
   gomp_mutex_unlock (&devicep->lock);
+}
+
+attribute_hidden void
+gomp_unmap_vars (struct target_mem_desc *tgt, bool do_copyfrom)
+{
+  gomp_unmap_vars_internal (tgt, do_copyfrom, NULL);
+}
+
+attribute_hidden void
+gomp_unmap_vars_async (struct target_mem_desc *tgt, bool do_copyfrom,
+		       struct goacc_asyncqueue *aq)
+{
+  gomp_unmap_vars_internal (tgt, do_copyfrom, aq);
 }
 
 static void
