@@ -216,6 +216,7 @@ struct nvptx_thread
   struct ptx_device *ptx_dev;
 };
 
+
 /* Target data function launch information.  */
 
 struct targ_fn_launch
@@ -1392,12 +1393,7 @@ GOMP_OFFLOAD_openacc_async_construct (void)
     = GOMP_PLUGIN_malloc (sizeof (struct goacc_asyncqueue));
   aq->cuda_stream = NULL;
   CUDA_CALL_ASSERT (cuStreamCreate, &aq->cuda_stream, CU_STREAM_DEFAULT);
-  if (aq->cuda_stream == NULL)
-    GOMP_PLUGIN_fatal ("CUDA stream create NULL\n");
-
-  CUDA_CALL_ASSERT (cuStreamSynchronize, aq->cuda_stream);
-
-
+  //CUDA_CALL_ASSERT (cuStreamSynchronize, aq->cuda_stream);
   return aq;
 }
 
