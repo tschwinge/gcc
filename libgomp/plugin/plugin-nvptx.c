@@ -1415,6 +1415,7 @@ GOMP_OFFLOAD_openacc_async_test (struct goacc_asyncqueue *aq)
   if (r == CUDA_ERROR_NOT_READY)
     return 0;
 
+  //TODO Is this safe to call, or might this cause deadlock if something's locked?
   GOMP_PLUGIN_error ("cuStreamQuery error: %s", cuda_error (r));
   return -1;
 }
@@ -1422,6 +1423,7 @@ GOMP_OFFLOAD_openacc_async_test (struct goacc_asyncqueue *aq)
 void
 GOMP_OFFLOAD_openacc_async_synchronize (struct goacc_asyncqueue *aq)
 {
+  //TODO Is this safe to call, or might this cause deadlock if something's locked?
   CUDA_CALL_ASSERT (cuStreamSynchronize, aq->cuda_stream);
 }
 
@@ -1430,6 +1432,7 @@ GOMP_OFFLOAD_openacc_async_serialize (struct goacc_asyncqueue *aq1,
 				      struct goacc_asyncqueue *aq2)
 {
   CUevent e;
+  //TODO Are these safe to call, or might this cause deadlock if something's locked?
   CUDA_CALL_ASSERT (cuEventCreate, &e, CU_EVENT_DISABLE_TIMING);
   CUDA_CALL_ASSERT (cuEventRecord, e, aq1->cuda_stream);
   CUDA_CALL_ASSERT (cuStreamWaitEvent, aq2->cuda_stream, e, 0);
@@ -1439,6 +1442,7 @@ static void
 cuda_callback_wrapper (CUstream stream, CUresult res, void *ptr)
 {
   if (res != CUDA_SUCCESS)
+    //TODO Is this safe to call, or might this cause deadlock if something's locked?
     GOMP_PLUGIN_fatal ("%s error: %s", __FUNCTION__, cuda_error (res));
   struct nvptx_callback *cb = (struct nvptx_callback *) ptr;
   cb->fn (cb->ptr);
@@ -1450,10 +1454,12 @@ GOMP_OFFLOAD_openacc_async_queue_callback (struct goacc_asyncqueue *aq,
 					   void (*callback_fn)(void *),
 					   void *userptr)
 {
+  //TODO Is this safe to call, or might this cause deadlock if something's locked?
   struct nvptx_callback *b = GOMP_PLUGIN_malloc (sizeof (*b));
   b->fn = callback_fn;
   b->ptr = userptr;
   b->aq = aq;
+  //TODO Is this safe to call, or might this cause deadlock if something's locked?
   CUDA_CALL_ASSERT (cuStreamAddCallback, aq->cuda_stream,
 		    cuda_callback_wrapper, (void *) b, 0);
 }

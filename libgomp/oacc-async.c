@@ -97,6 +97,7 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
   if (id >= dev->openacc.async.nasyncqueue)
     {
       int diff = id + 1 - dev->openacc.async.nasyncqueue;
+      // TODO gomp_realloc might call "gomp_fatal" with "&dev->openacc.async.lock" locked.  Might cause deadlock?
       dev->openacc.async.asyncqueue
 	= gomp_realloc (dev->openacc.async.asyncqueue,
 			sizeof (goacc_aq) * (id + 1));
@@ -107,6 +108,8 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
 
   if (!dev->openacc.async.asyncqueue[id])
     {
+      //TODO We have "&dev->openacc.async.lock" locked here, and if "openacc.async.construct_func" calls "GOMP_PLUGIN_fatal" (via "CUDA_CALL_ASSERT", for example), that might cause deadlock?
+      //TODO Change the interface to emit an error in the plugin, but then "return NULL", and we catch that here, unlock, and bail out?
       dev->openacc.async.asyncqueue[id] = dev->openacc.async.construct_func ();
 
       if (!dev->openacc.async.asyncqueue[id])
@@ -116,6 +119,7 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
 	}
       
       /* Link new async queue into active list.  */
+      // TODO gomp_malloc might call "gomp_fatal" with "&dev->openacc.async.lock" locked.  Might cause deadlock?
       goacc_aq_list n = gomp_malloc (sizeof (struct goacc_asyncqueue_list));
       n->aq = dev->openacc.async.asyncqueue[id];
       n->next = dev->openacc.async.active;
@@ -307,6 +311,7 @@ goacc_fini_asyncqueues (struct gomp_device_descr *devicep)
       goacc_aq_list next;
       for (goacc_aq_list l = devicep->openacc.async.active; l; l = next)
 	{
+	  //TODO Can/should/must we "synchronize" here (how?), so as to make sure that no other operation on this asyncqueue is going on while/after we've destructed it here?
 	  ret &= devicep->openacc.async.destruct_func (l->aq);
 	  next = l->next;
 	  free (l);
