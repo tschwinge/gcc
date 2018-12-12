@@ -143,9 +143,6 @@ get_goacc_asyncqueue (int async)
 int
 acc_async_test (int async)
 {
-  if (!async_valid_p (async))
-    gomp_fatal ("invalid async argument: %d", async);
-
   struct goacc_thread *thr = goacc_thread ();
 
   if (!thr || !thr->dev)
@@ -178,9 +175,6 @@ acc_async_test_all (void)
 void
 acc_wait (int async)
 {
-  if (!async_valid_p (async))
-    gomp_fatal ("invalid async argument: %d", async);
-
   struct goacc_thread *thr = get_goacc_thread ();
 
   goacc_aq aq = lookup_goacc_asyncqueue (thr, false, async);
@@ -204,10 +198,12 @@ acc_wait_async (int async1, int async2)
 {
   struct goacc_thread *thr = get_goacc_thread ();
 
-  goacc_aq aq2 = lookup_goacc_asyncqueue (thr, true, async2);
   goacc_aq aq1 = lookup_goacc_asyncqueue (thr, false, async1);
+  //TODO Is this correct also for acc_async_sync, assuming that in ths case, we'll always be synchronous anyway?
   if (!aq1)
-    gomp_fatal ("invalid async 1");
+    return;
+
+  goacc_aq aq2 = lookup_goacc_asyncqueue (thr, true, async2);
   if (aq1 == aq2)
     gomp_fatal ("identical parameters");
 
@@ -246,9 +242,6 @@ acc_async_wait_all (void)
 void
 acc_wait_all_async (int async)
 {
-  if (!async_valid_p (async))
-    gomp_fatal ("invalid async argument: %d", async);
-
   struct goacc_thread *thr = get_goacc_thread ();
 
   goacc_aq waiting_queue = lookup_goacc_asyncqueue (thr, true, async);
