@@ -54,19 +54,35 @@ get_goacc_thread_device (void)
   return thr->dev;
 }
 
+/* Translate from an OpenACC async-argument to an internal asyncqueue ID, or -1
+   if no asyncqueue is to be used.  */
+
+static int
+async2id (int async)
+{
+  if (!async_valid_p (async))
+    gomp_fatal ("invalid async-argument: %d", async);
+
+  if (async == acc_async_sync)
+    return -1;
+  else if (async == acc_async_noval)
+    return 0;
+  else if (async >= 0)
+    return 1 + async;
+  else
+    __builtin_unreachable ();
+}
+
+/* Return the asyncqueue to be used for OpenACC async-argument ASYNC.  This
+   might return NULL if no asyncqueue is to be used.  Otherwise, if CREATE,
+   create the asyncqueue if it doesn't exist yet.  */
+
 attribute_hidden struct goacc_asyncqueue *
 lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
 {
-  /* The special value acc_async_noval (-1) maps to the thread-specific
-     default async stream.  */
-  if (async == acc_async_noval)
-    async = 0; //TODO thr->default_async;
-
-  if (async == acc_async_sync)
+  int id = async2id (async);
+  if (id < 0)
     return NULL;
-
-  if (async < 0)
-    gomp_fatal ("bad async %d", async);
 
   struct goacc_asyncqueue *ret_aq = NULL;
   struct gomp_device_descr *dev = thr->dev;
@@ -74,26 +90,26 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
   gomp_mutex_lock (&dev->openacc.async.lock);
 
   if (!create
-      && (async >= dev->openacc.async.nasyncqueue
-	  || !dev->openacc.async.asyncqueue[async]))
+      && (id >= dev->openacc.async.nasyncqueue
+	  || !dev->openacc.async.asyncqueue[id]))
     goto end;
 
-  if (async >= dev->openacc.async.nasyncqueue)
+  if (id >= dev->openacc.async.nasyncqueue)
     {
-      int diff = async + 1 - dev->openacc.async.nasyncqueue;
+      int diff = id + 1 - dev->openacc.async.nasyncqueue;
       dev->openacc.async.asyncqueue
 	= gomp_realloc (dev->openacc.async.asyncqueue,
-			sizeof (goacc_aq) * (async + 1));
+			sizeof (goacc_aq) * (id + 1));
       memset (dev->openacc.async.asyncqueue + dev->openacc.async.nasyncqueue,
 	      0, sizeof (goacc_aq) * diff);
-      dev->openacc.async.nasyncqueue = async + 1;
+      dev->openacc.async.nasyncqueue = id + 1;
     }
 
-  if (!dev->openacc.async.asyncqueue[async])
+  if (!dev->openacc.async.asyncqueue[id])
     {
-      dev->openacc.async.asyncqueue[async] = dev->openacc.async.construct_func ();
+      dev->openacc.async.asyncqueue[id] = dev->openacc.async.construct_func ();
 
-      if (!dev->openacc.async.asyncqueue[async])
+      if (!dev->openacc.async.asyncqueue[id])
 	{
 	  gomp_mutex_unlock (&dev->openacc.async.lock);
 	  gomp_fatal ("async %d creation failed", async);
@@ -101,17 +117,21 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
       
       /* Link new async queue into active list.  */
       goacc_aq_list n = gomp_malloc (sizeof (struct goacc_asyncqueue_list));
-      n->aq = dev->openacc.async.asyncqueue[async];
+      n->aq = dev->openacc.async.asyncqueue[id];
       n->next = dev->openacc.async.active;
       dev->openacc.async.active = n;
     }
 
-  ret_aq = dev->openacc.async.asyncqueue[async];
+  ret_aq = dev->openacc.async.asyncqueue[id];
 
  end:
   gomp_mutex_unlock (&dev->openacc.async.lock);
   return ret_aq;
 }
+
+/* Return the asyncqueue to be used for OpenACC async-argument ASYNC.  This
+   might return NULL if no asyncqueue is to be used.  Otherwise, create the
+   asyncqueue if it doesn't exist yet.  */
 
 attribute_hidden struct goacc_asyncqueue *
 get_goacc_asyncqueue (int async)
