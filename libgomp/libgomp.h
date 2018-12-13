@@ -955,6 +955,11 @@ typedef struct acc_dispatch_t
     *destroy_thread_data_func;
   
   struct {
+    //TODO Why do these live in the "device" data structure, and not in the "per-thread" data structure?
+    //TODO Aren't they meant to be separate per thread?
+    //TODO That is, as far as I remember right now, OpenACC explicitly states that an asyncqueue doesn't entail any synchronization between different host threads.
+    //TODO Verify OpenACC.
+    //TODO With that moved into "goacc_thread", we could get rid of all the locking needed here?
     /* Once created and put into the "active" list, asyncqueues are then never
        destructed and removed from the "active" list, other than if the TODO
        device is shut down.  */
