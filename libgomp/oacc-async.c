@@ -26,7 +26,6 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <assert.h>
 #include <string.h>
 #include "openacc.h"
 #include "libgomp.h"
@@ -147,10 +146,7 @@ get_goacc_asyncqueue (int async)
 int
 acc_async_test (int async)
 {
-  struct goacc_thread *thr = goacc_thread ();
-
-  if (!thr || !thr->dev)
-    gomp_fatal ("no device active");
+  struct goacc_thread *thr = get_goacc_thread ();
 
   goacc_aq aq = lookup_goacc_asyncqueue (thr, false, async);
   if (!aq)
