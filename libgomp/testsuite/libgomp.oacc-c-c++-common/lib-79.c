@@ -114,7 +114,6 @@ main (int argc, char **argv)
 
   for (i = 0; i < N; i++)
     {
-      stream = (CUstream) acc_get_cuda_stream (i & 1);
       r = cuLaunchKernel (delay, 1, 1, 1, 1, 1, 1, 0, stream, kargs, 0);
       if (r != CUDA_SUCCESS)
 	{
@@ -131,6 +130,9 @@ main (int argc, char **argv)
     abort ();
 
   acc_wait_async (0, 1);
+
+  if (acc_async_test (0) != 0)
+    abort ();
 
   if (acc_async_test (1) != 0)
     abort ();
