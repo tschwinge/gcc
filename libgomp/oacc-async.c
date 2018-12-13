@@ -209,8 +209,11 @@ acc_wait_async (int async1, int async2)
 
   if (!thr->dev->openacc.async.synchronize_func (aq1))
     gomp_fatal ("wait on %d failed", async1);
-  if (!thr->dev->openacc.async.serialize_func (aq1, aq2))
-    gomp_fatal ("ordering of async ids %d and %d failed", async1, async2);
+  if (aq2)
+    {
+      if (!thr->dev->openacc.async.serialize_func (aq1, aq2))
+	gomp_fatal ("ordering of async ids %d and %d failed", async1, async2);
+    }
 }
 
 void
