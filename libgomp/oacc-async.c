@@ -207,12 +207,16 @@ acc_wait_async (int async1, int async2)
   if (aq1 == aq2)
     gomp_fatal ("identical parameters");
 
-  if (!thr->dev->openacc.async.synchronize_func (aq1))
-    gomp_fatal ("wait on %d failed", async1);
   if (aq2)
     {
       if (!thr->dev->openacc.async.serialize_func (aq1, aq2))
 	gomp_fatal ("ordering of async ids %d and %d failed", async1, async2);
+    }
+  else
+    {
+      //TODO Local thread synchronization.  Necessary for the "async2 == acc_async_sync" case, or can just skip?
+      if (!thr->dev->openacc.async.synchronize_func (aq1))
+	gomp_fatal ("wait on %d failed", async1);
     }
 }
 
@@ -253,9 +257,11 @@ acc_wait_all_async (int async)
   gomp_mutex_lock (&thr->dev->openacc.async.lock);
   for (goacc_aq_list l = thr->dev->openacc.async.active; l; l = l->next)
     {
-      ret &= thr->dev->openacc.async.synchronize_func (l->aq);
       if (waiting_queue)
 	ret &= thr->dev->openacc.async.serialize_func (l->aq, waiting_queue);
+      else
+	//TODO Local thread synchronization.  Necessary for the "async == acc_async_sync" case, or can just skip?
+	ret &= thr->dev->openacc.async.synchronize_func (l->aq);
     }
   gomp_mutex_unlock (&thr->dev->openacc.async.lock);
 

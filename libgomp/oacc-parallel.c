@@ -523,7 +523,6 @@ goacc_wait (int async, int num_waits, va_list *ap)
       else
 	{
 	  goacc_aq aq2 = get_goacc_asyncqueue (async);
-	  acc_dev->openacc.async.synchronize_func (aq);
 	  acc_dev->openacc.async.serialize_func (aq, aq2);
 	}
     }
