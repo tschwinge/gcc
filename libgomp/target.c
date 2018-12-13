@@ -1527,6 +1527,9 @@ gomp_init_device (struct gomp_device_descr *devicep)
   devicep->state = GOMP_DEVICE_INITIALIZED;
 }
 
+/* This function finalizes the target device, specified by DEVICEP.  DEVICEP
+   must be locked on entry, and remains locked on return.  */
+
 attribute_hidden bool
 gomp_fini_device (struct gomp_device_descr *devicep)
 {

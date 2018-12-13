@@ -277,6 +277,10 @@ goacc_async_free (struct gomp_device_descr *devicep,
     devicep->openacc.async.queue_callback_func (aq, free, ptr);
 }
 
+/* This function initializes the asyncqueues for the device specified by
+   DEVICEP.  TODO DEVICEP must be locked on entry, and remains locked on
+   return.  */
+
 attribute_hidden void
 goacc_init_asyncqueues (struct gomp_device_descr *devicep)
 {
@@ -285,6 +289,9 @@ goacc_init_asyncqueues (struct gomp_device_descr *devicep)
   devicep->openacc.async.active = NULL;
   gomp_mutex_init (&devicep->openacc.async.lock);
 }
+
+/* This function finalizes the asyncqueues for the device specified by DEVICEP.
+   TODO DEVICEP must be locked on entry, and remains locked on return.  */
 
 attribute_hidden bool
 goacc_fini_asyncqueues (struct gomp_device_descr *devicep)

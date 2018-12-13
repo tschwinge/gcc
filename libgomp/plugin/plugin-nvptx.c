@@ -1365,14 +1365,14 @@ GOMP_OFFLOAD_openacc_cuda_get_current_context (void)
   return nvptx_get_current_cuda_context ();
 }
 
-/* NOTE: This returns a CUstream, not a ptx_stream pointer.  */
+/* This returns a CUstream.  */
 void *
 GOMP_OFFLOAD_openacc_cuda_get_stream (struct goacc_asyncqueue *aq)
 {
   return (void *) aq->cuda_stream;
 }
 
-/* NOTE: This takes a CUstream, not a ptx_stream pointer.  */
+/* This takes a CUstream.  */
 int
 GOMP_OFFLOAD_openacc_cuda_set_stream (struct goacc_asyncqueue *aq, void *stream)
 {

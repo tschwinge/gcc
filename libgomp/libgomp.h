@@ -955,6 +955,9 @@ typedef struct acc_dispatch_t
     *destroy_thread_data_func;
   
   struct {
+    /* Once created and put into the "active" list, asyncqueues are then never
+       destructed and removed from the "active" list, other than if the TODO
+       device is shut down.  */
     gomp_mutex_t lock;
     int nasyncqueue;
     struct goacc_asyncqueue **asyncqueue;
