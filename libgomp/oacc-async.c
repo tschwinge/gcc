@@ -204,8 +204,10 @@ acc_wait_async (int async1, int async2)
     return;
 
   goacc_aq aq2 = lookup_goacc_asyncqueue (thr, true, async2);
+
+  /* An asyncqueue is always synchronized with itself.  */
   if (aq1 == aq2)
-    gomp_fatal ("identical parameters");
+    return;
 
   if (aq2)
     {
