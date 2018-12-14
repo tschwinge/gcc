@@ -418,11 +418,11 @@ GOACC_enter_exit_data (int flags_m, size_t mapnum,
 		{
 		case GOMP_MAP_ALLOC:
 		case GOMP_MAP_FORCE_ALLOC:
-		  acc_create (hostaddrs[i], sizes[i]);
+		  acc_create_async (hostaddrs[i], sizes[i], async);
 		  break;
 		case GOMP_MAP_TO:
 		case GOMP_MAP_FORCE_TO:
-		  acc_copyin (hostaddrs[i], sizes[i]);
+		  acc_copyin_async (hostaddrs[i], sizes[i], async);
 		  break;
 		default:
 		  gomp_fatal (">>>> GOACC_enter_exit_data UNHANDLED kind 0x%.2x",
@@ -577,6 +577,8 @@ GOACC_update (int flags_m, size_t mapnum,
 		 the value of the allocated device memory in the
 		 previous pointer.  */
 	      *(uintptr_t *) hostaddrs[i] = (uintptr_t)dptr;
+	      /* This is intentionally no calling acc_update_device_async,
+		 because TODO.  */
 	      acc_update_device (hostaddrs[i], sizeof (uintptr_t));
 
 	      /* Restore the host pointer.  */
