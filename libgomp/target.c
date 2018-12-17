@@ -1091,6 +1091,17 @@ gomp_remove_var (struct gomp_device_descr *devicep, splay_tree_key k)
   return is_tgt_unmapped;
 }
 
+static void
+gomp_unref_tgt (void *ptr)
+{
+  struct target_mem_desc *tgt = (struct target_mem_desc *) ptr;
+
+  if (tgt->refcount > 1)
+    tgt->refcount--;
+  else
+    gomp_unmap_tgt (tgt);
+}
+
 /* Unmap variables described by TGT.  If DO_COPYFROM is true, copy relevant
    variables back from device to host: if it is false, it is assumed that this
    has been done already.  */
@@ -1143,10 +1154,11 @@ gomp_unmap_vars_internal (struct target_mem_desc *tgt, bool do_copyfrom,
 	gomp_remove_var (devicep, k);
     }
 
-  if (tgt->refcount > 1)
-    tgt->refcount--;
+  if (aq)
+    devicep->openacc.async.queue_callback_func (aq, gomp_unref_tgt,
+						(void *) tgt);
   else
-    gomp_unmap_tgt (tgt);
+    gomp_unref_tgt ((void *) tgt);
 
   gomp_mutex_unlock (&devicep->lock);
 }
