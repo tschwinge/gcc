@@ -1389,11 +1389,12 @@ GOMP_OFFLOAD_openacc_cuda_set_stream (struct goacc_asyncqueue *aq, void *stream)
 struct goacc_asyncqueue *
 GOMP_OFFLOAD_openacc_async_construct (void)
 {
+  CUstream stream = NULL;
+  CUDA_CALL_ERET (NULL, cuStreamCreate, &stream, CU_STREAM_DEFAULT);
+
   struct goacc_asyncqueue *aq
     = GOMP_PLUGIN_malloc (sizeof (struct goacc_asyncqueue));
-  aq->cuda_stream = NULL;
-  CUDA_CALL_ASSERT (cuStreamCreate, &aq->cuda_stream, CU_STREAM_DEFAULT);
-  //CUDA_CALL_ASSERT (cuStreamSynchronize, aq->cuda_stream);
+  aq->cuda_stream = stream;
   return aq;
 }
 
