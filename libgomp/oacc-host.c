@@ -214,7 +214,8 @@ host_openacc_async_queue_callback (struct goacc_asyncqueue *aq
 static struct goacc_asyncqueue *
 host_openacc_async_construct (void)
 {
-  return NULL;
+  /* We have to return non-NULL here, but it's OK to use a dummy.  */
+  return (struct goacc_asyncqueue *) -1;
 }
 
 static bool
