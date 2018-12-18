@@ -73,6 +73,9 @@ struct goacc_thread
 
   /* Target-specific data (used by plugin).  */
   void *target_tls;
+
+  /* Default OpenACC async queue for current thread, exported to plugin.  */
+  int default_async;
 };
 
 #if defined HAVE_TLS || defined USE_EMUTLS
@@ -98,6 +101,14 @@ void goacc_save_and_set_bind (acc_device_t);
 void goacc_restore_bind (void);
 void goacc_lazy_initialize (void);
 void goacc_host_init (void);
+
+void goacc_init_asyncqueues (struct gomp_device_descr *);
+bool goacc_fini_asyncqueues (struct gomp_device_descr *);
+void goacc_async_free (struct gomp_device_descr *, struct goacc_asyncqueue *,
+		       void *);
+struct goacc_asyncqueue *get_goacc_asyncqueue (int);
+struct goacc_asyncqueue *lookup_goacc_asyncqueue (struct goacc_thread *, bool,
+						  int);
 
 static inline bool
 async_valid_stream_id_p (int async)

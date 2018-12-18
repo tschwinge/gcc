@@ -914,7 +914,7 @@ gomp_acc_remove_pointer (void *h, size_t s, bool force_copyfrom, int async,
       else
 	{
 	  goacc_aq aq = get_goacc_asyncqueue (async);
-	  goacc_async_copyout_unmap_vars (t, aq);
+	  gomp_unmap_vars_async (t, true, aq);
 	}
     }
 

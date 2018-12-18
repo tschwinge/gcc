@@ -237,7 +237,7 @@ GOACC_parallel_keyed (int flags_m, void (*fn) (void *),
 
   tgt = gomp_map_vars_async (acc_dev, aq, mapnum, hostaddrs, NULL, sizes, kinds,
 			     true, GOMP_MAP_VARS_OPENACC);
-
+  
   devaddrs = gomp_alloca (sizeof (void *) * mapnum);
   for (i = 0; i < mapnum; i++)
     devaddrs[i] = (void *) (tgt->list[i].key->tgt->tgt_start
@@ -254,7 +254,7 @@ GOACC_parallel_keyed (int flags_m, void (*fn) (void *),
     {
       acc_dev->openacc.async.exec_func (tgt_fn, mapnum, hostaddrs, devaddrs,
 					dims, tgt, aq);
-      goacc_async_copyout_unmap_vars (tgt, aq);
+      gomp_unmap_vars_async (tgt, true, aq);
     }
 }
 

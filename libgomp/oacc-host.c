@@ -266,6 +266,9 @@ static struct gomp_device_descr host_dispatch =
 
       .exec_func = host_openacc_exec,
 
+      .create_thread_data_func = host_openacc_create_thread_data,
+      .destroy_thread_data_func = host_openacc_destroy_thread_data,
+
       .async = {
 	.construct_func = host_openacc_async_construct,
 	.destruct_func = host_openacc_async_destruct,
@@ -277,9 +280,6 @@ static struct gomp_device_descr host_dispatch =
 	.dev2host_func = host_openacc_async_dev2host,
 	.host2dev_func = host_openacc_async_host2dev,
       },
-
-      .create_thread_data_func = host_openacc_create_thread_data,
-      .destroy_thread_data_func = host_openacc_destroy_thread_data,
 
       .cuda = {
 	.get_current_device_func = NULL,

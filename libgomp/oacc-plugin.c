@@ -30,6 +30,13 @@
 #include "oacc-plugin.h"
 #include "oacc-int.h"
 
+void
+GOMP_PLUGIN_async_unmap_vars (void *ptr __attribute__((unused)),
+			      int async __attribute__((unused)))
+{
+  gomp_fatal ("invalid plugin function");
+}
+
 /* Return the target-specific part of the TLS data for the current thread.  */
 
 void *

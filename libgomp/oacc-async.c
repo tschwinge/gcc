@@ -70,12 +70,16 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
 
   struct gomp_device_descr *dev = thr->dev;
 
+  gomp_mutex_lock (&dev->openacc.async.lock);
+
   if (!create
       && (async >= dev->openacc.async.nasyncqueue
 	  || !dev->openacc.async.asyncqueue[async]))
-    return NULL;
+    {
+      gomp_mutex_unlock (&dev->openacc.async.lock);
+      return NULL;
+    }
 
-  gomp_mutex_lock (&dev->openacc.async.lock);
   if (async >= dev->openacc.async.nasyncqueue)
     {
       int diff = async + 1 - dev->openacc.async.nasyncqueue;
@@ -91,6 +95,12 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
     {
       dev->openacc.async.asyncqueue[async] = dev->openacc.async.construct_func ();
 
+      if (!dev->openacc.async.asyncqueue[async])
+	{
+	  gomp_mutex_unlock (&dev->openacc.async.lock);
+	  gomp_fatal ("async %d creation failed", async);
+	}
+      
       /* Link new async queue into active list.  */
       goacc_aq_list n = gomp_malloc (sizeof (struct goacc_asyncqueue_list));
       n->aq = dev->openacc.async.asyncqueue[async];
@@ -236,31 +246,6 @@ acc_set_default_async (int async)
 
   struct goacc_thread *thr = get_goacc_thread ();
   thr->default_async = async;
-}
-
-static void
-goacc_async_unmap_tgt (void *ptr)
-{
-  struct target_mem_desc *tgt = (struct target_mem_desc *) ptr;
-
-  if (tgt->refcount > 1)
-    tgt->refcount--;
-  else
-    gomp_unmap_tgt (tgt);
-}
-
-attribute_hidden void
-goacc_async_copyout_unmap_vars (struct target_mem_desc *tgt,
-				struct goacc_asyncqueue *aq)
-{
-  struct gomp_device_descr *devicep = tgt->device_descr;
-
-  /* Increment reference to delay freeing of device memory until callback
-     has triggered.  */
-  tgt->refcount++;
-  gomp_unmap_vars_async (tgt, true, aq);
-  devicep->openacc.async.queue_callback_func (aq, goacc_async_unmap_tgt,
-					      (void *) tgt);
 }
 
 attribute_hidden void
