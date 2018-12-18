@@ -110,9 +110,8 @@ extern void GOMP_OFFLOAD_async_run (int, void *, void *, void **, void *);
 
 extern void GOMP_OFFLOAD_openacc_exec (void (*) (void *), size_t, void **,
 				       void **, unsigned *, void *);
-extern void GOMP_OFFLOAD_openacc_async_exec (void (*) (void *), size_t, void **,
-					     void **, unsigned *, void *,
-					     struct goacc_asyncqueue *);
+extern void *GOMP_OFFLOAD_openacc_create_thread_data (int);
+extern void GOMP_OFFLOAD_openacc_destroy_thread_data (void *);
 extern struct goacc_asyncqueue *GOMP_OFFLOAD_openacc_async_construct (void);
 extern bool GOMP_OFFLOAD_openacc_async_destruct (struct goacc_asyncqueue *);
 extern int GOMP_OFFLOAD_openacc_async_test (struct goacc_asyncqueue *);
@@ -121,12 +120,13 @@ extern void GOMP_OFFLOAD_openacc_async_serialize (struct goacc_asyncqueue *,
 						  struct goacc_asyncqueue *);
 extern void GOMP_OFFLOAD_openacc_async_queue_callback (struct goacc_asyncqueue *,
 						       void (*)(void *), void *);
-extern bool GOMP_OFFLOAD_openacc_async_host2dev (int, void *, const void *, size_t,
-						 struct goacc_asyncqueue *);
+extern void GOMP_OFFLOAD_openacc_async_exec (void (*) (void *), size_t, void **,
+					     void **, unsigned *, void *,
+					     struct goacc_asyncqueue *);
 extern bool GOMP_OFFLOAD_openacc_async_dev2host (int, void *, const void *, size_t,
 						 struct goacc_asyncqueue *);
-extern void *GOMP_OFFLOAD_openacc_create_thread_data (int);
-extern void GOMP_OFFLOAD_openacc_destroy_thread_data (void *);
+extern bool GOMP_OFFLOAD_openacc_async_host2dev (int, void *, const void *, size_t,
+						 struct goacc_asyncqueue *);
 extern void *GOMP_OFFLOAD_openacc_cuda_get_current_device (void);
 extern void *GOMP_OFFLOAD_openacc_cuda_get_current_context (void);
 extern void *GOMP_OFFLOAD_openacc_cuda_get_stream (struct goacc_asyncqueue *);

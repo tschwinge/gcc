@@ -949,6 +949,11 @@ typedef struct acc_dispatch_t
   /* Execute.  */
   __typeof (GOMP_OFFLOAD_openacc_exec) *exec_func;
 
+  /* Create/destroy TLS data.  */
+  __typeof (GOMP_OFFLOAD_openacc_create_thread_data) *create_thread_data_func;
+  __typeof (GOMP_OFFLOAD_openacc_destroy_thread_data)
+    *destroy_thread_data_func;
+  
   struct {
     gomp_mutex_t lock;
     int nasyncqueue;
@@ -963,14 +968,9 @@ typedef struct acc_dispatch_t
     __typeof (GOMP_OFFLOAD_openacc_async_queue_callback) *queue_callback_func;
 
     __typeof (GOMP_OFFLOAD_openacc_async_exec) *exec_func;
-    __typeof (GOMP_OFFLOAD_openacc_async_host2dev) *host2dev_func;
     __typeof (GOMP_OFFLOAD_openacc_async_dev2host) *dev2host_func;
+    __typeof (GOMP_OFFLOAD_openacc_async_host2dev) *host2dev_func;
   } async;
-
-  /* Create/destroy TLS data.  */
-  __typeof (GOMP_OFFLOAD_openacc_create_thread_data) *create_thread_data_func;
-  __typeof (GOMP_OFFLOAD_openacc_destroy_thread_data)
-    *destroy_thread_data_func;
 
   /* NVIDIA target specific routines.  */
   struct {
