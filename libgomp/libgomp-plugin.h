@@ -115,8 +115,8 @@ extern void GOMP_OFFLOAD_openacc_destroy_thread_data (void *);
 extern struct goacc_asyncqueue *GOMP_OFFLOAD_openacc_async_construct (void);
 extern bool GOMP_OFFLOAD_openacc_async_destruct (struct goacc_asyncqueue *);
 extern int GOMP_OFFLOAD_openacc_async_test (struct goacc_asyncqueue *);
-extern void GOMP_OFFLOAD_openacc_async_synchronize (struct goacc_asyncqueue *);
-extern void GOMP_OFFLOAD_openacc_async_serialize (struct goacc_asyncqueue *,
+extern bool GOMP_OFFLOAD_openacc_async_synchronize (struct goacc_asyncqueue *);
+extern bool GOMP_OFFLOAD_openacc_async_serialize (struct goacc_asyncqueue *,
 						  struct goacc_asyncqueue *);
 extern void GOMP_OFFLOAD_openacc_async_queue_callback (struct goacc_asyncqueue *,
 						       void (*)(void *), void *);

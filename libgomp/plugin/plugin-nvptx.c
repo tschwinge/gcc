@@ -1420,22 +1420,35 @@ GOMP_OFFLOAD_openacc_async_test (struct goacc_asyncqueue *aq)
   return -1;
 }
 
-void
+bool
 GOMP_OFFLOAD_openacc_async_synchronize (struct goacc_asyncqueue *aq)
 {
-  //TODO Is this safe to call, or might this cause deadlock if something's locked?
-  CUDA_CALL_ASSERT (cuStreamSynchronize, aq->cuda_stream);
+  CUresult r = CUDA_CALL_NOCHECK (cuStreamSynchronize, aq->cuda_stream);
+  return r == CUDA_SUCCESS;
 }
 
-void
+bool
 GOMP_OFFLOAD_openacc_async_serialize (struct goacc_asyncqueue *aq1,
 				      struct goacc_asyncqueue *aq2)
 {
+  CUresult r;
   CUevent e;
-  //TODO Are these safe to call, or might this cause deadlock if something's locked?
-  CUDA_CALL_ASSERT (cuEventCreate, &e, CU_EVENT_DISABLE_TIMING);
-  CUDA_CALL_ASSERT (cuEventRecord, e, aq1->cuda_stream);
-  CUDA_CALL_ASSERT (cuStreamWaitEvent, aq2->cuda_stream, e, 0);
+  r = CUDA_CALL_NOCHECK (cuEventCreate, &e, CU_EVENT_DISABLE_TIMING);
+  if (r != CUDA_SUCCESS)
+    return false;
+  r = CUDA_CALL_NOCHECK (cuEventRecord, e, aq1->cuda_stream);
+  if (r != CUDA_SUCCESS)
+    {
+      //TODO "cuEventDestroy"?
+      return false;
+    }
+  r = CUDA_CALL_NOCHECK (cuStreamWaitEvent, aq2->cuda_stream, e, 0);
+  if (r != CUDA_SUCCESS)
+    {
+      //TODO "cuEventDestroy"?
+      return false;
+    }
+  return true;
 }
 
 static void
