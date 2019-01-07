@@ -30,6 +30,7 @@
 #include "oacc-plugin.h"
 #include "oacc-int.h"
 
+/* This plugin function is now obsolete.  */
 void
 GOMP_PLUGIN_async_unmap_vars (void *ptr __attribute__((unused)),
 			      int async __attribute__((unused)))

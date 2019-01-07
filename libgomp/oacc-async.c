@@ -68,6 +68,7 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
   if (async < 0)
     gomp_fatal ("bad async %d", async);
 
+  struct goacc_asyncqueue *ret_aq = NULL;
   struct gomp_device_descr *dev = thr->dev;
 
   gomp_mutex_lock (&dev->openacc.async.lock);
@@ -75,10 +76,7 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
   if (!create
       && (async >= dev->openacc.async.nasyncqueue
 	  || !dev->openacc.async.asyncqueue[async]))
-    {
-      gomp_mutex_unlock (&dev->openacc.async.lock);
-      return NULL;
-    }
+    goto end;
 
   if (async >= dev->openacc.async.nasyncqueue)
     {
@@ -107,8 +105,12 @@ lookup_goacc_asyncqueue (struct goacc_thread *thr, bool create, int async)
       n->next = dev->openacc.async.active;
       dev->openacc.async.active = n;
     }
+
+  ret_aq = dev->openacc.async.asyncqueue[async];
+
+ end:
   gomp_mutex_unlock (&dev->openacc.async.lock);
-  return dev->openacc.async.asyncqueue[async];
+  return ret_aq;
 }
 
 attribute_hidden struct goacc_asyncqueue *
@@ -185,8 +187,10 @@ acc_wait_async (int async1, int async2)
   if (aq1 == aq2)
     gomp_fatal ("identical parameters");
 
-  thr->dev->openacc.async.synchronize_func (aq1);
-  thr->dev->openacc.async.serialize_func (aq1, aq2);
+  if (!thr->dev->openacc.async.synchronize_func (aq1))
+    gomp_fatal ("wait on %d failed", async1);
+  if (!thr->dev->openacc.async.serialize_func (aq1, aq2))
+    gomp_fatal ("ordering of async ids %d and %d failed", async1, async2);
 }
 
 void
@@ -194,10 +198,14 @@ acc_wait_all (void)
 {
   struct gomp_device_descr *dev = get_goacc_thread_device ();
 
+  bool ret = true;
   gomp_mutex_lock (&dev->openacc.async.lock);
   for (goacc_aq_list l = dev->openacc.async.active; l; l = l->next)
-    dev->openacc.async.synchronize_func (l->aq);
+    ret &= dev->openacc.async.synchronize_func (l->aq);
   gomp_mutex_unlock (&dev->openacc.async.lock);
+
+  if (!ret)
+    gomp_fatal ("wait all failed");
 }
 
 /* acc_async_wait_all is an OpenACC 1.0 compatibility name for acc_wait_all.  */
@@ -221,14 +229,18 @@ acc_wait_all_async (int async)
 
   goacc_aq waiting_queue = lookup_goacc_asyncqueue (thr, true, async);
 
+  bool ret = true;
   gomp_mutex_lock (&thr->dev->openacc.async.lock);
   for (goacc_aq_list l = thr->dev->openacc.async.active; l; l = l->next)
     {
-      thr->dev->openacc.async.synchronize_func (l->aq);
+      ret &= thr->dev->openacc.async.synchronize_func (l->aq);
       if (waiting_queue)
-	thr->dev->openacc.async.serialize_func (l->aq, waiting_queue);
+	ret &= thr->dev->openacc.async.serialize_func (l->aq, waiting_queue);
     }
   gomp_mutex_unlock (&thr->dev->openacc.async.lock);
+
+  if (!ret)
+    gomp_fatal ("wait all async(%d) failed", async);
 }
 
 int
@@ -261,16 +273,17 @@ goacc_async_free (struct gomp_device_descr *devicep,
 attribute_hidden void
 goacc_init_asyncqueues (struct gomp_device_descr *devicep)
 {
-  gomp_mutex_init (&devicep->openacc.async.lock);
   devicep->openacc.async.nasyncqueue = 0;
   devicep->openacc.async.asyncqueue = NULL;
   devicep->openacc.async.active = NULL;
+  gomp_mutex_init (&devicep->openacc.async.lock);
 }
 
 attribute_hidden bool
 goacc_fini_asyncqueues (struct gomp_device_descr *devicep)
 {
   bool ret = true;
+  gomp_mutex_lock (&devicep->openacc.async.lock);
   if (devicep->openacc.async.nasyncqueue > 0)
     {
       goacc_aq_list next;
@@ -285,6 +298,7 @@ goacc_fini_asyncqueues (struct gomp_device_descr *devicep)
       devicep->openacc.async.asyncqueue = NULL;
       devicep->openacc.async.active = NULL;
     }
+  gomp_mutex_unlock (&devicep->openacc.async.lock);
   gomp_mutex_destroy (&devicep->openacc.async.lock);
   return ret;
 }

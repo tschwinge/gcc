@@ -164,18 +164,20 @@ host_openacc_async_test (struct goacc_asyncqueue *aq __attribute__ ((unused)))
   return 1;
 }
 
-static void
+static bool
 host_openacc_async_synchronize (struct goacc_asyncqueue *aq
 				__attribute__ ((unused)))
 {
+  return true;
 }
 
-static void
+static bool
 host_openacc_async_serialize (struct goacc_asyncqueue *aq1
 			      __attribute__ ((unused)),
 			      struct goacc_asyncqueue *aq2
 			      __attribute__ ((unused)))
 {
+  return true;
 }
 
 static bool
