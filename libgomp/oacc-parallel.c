@@ -205,14 +205,8 @@ GOACC_parallel_keyed (int flags_m, void (*fn) (void *),
 
 	case GOMP_LAUNCH_WAIT:
 	  {
-	    /* Be careful to cast the op field as a signed 16-bit, and
-	       sign-extend to full integer.  */
-	    int num_waits = ((signed short) GOMP_LAUNCH_OP (tag));
-
-	    if (num_waits > 0)
-	      goacc_wait (async, num_waits, &ap);
-	    else if (num_waits == acc_async_noval)
-	      acc_wait_all_async (async);
+	    unsigned num_waits = GOMP_LAUNCH_OP (tag);
+	    goacc_wait (async, num_waits, &ap);
 	    break;
 	  }
 
@@ -369,7 +363,7 @@ GOACC_enter_exit_data (int flags_m, size_t mapnum,
       || (flags & GOACC_FLAG_HOST_FALLBACK))
     return;
 
-  if (num_waits > 0)
+  if (num_waits)
     {
       va_list ap;
 
@@ -377,8 +371,6 @@ GOACC_enter_exit_data (int flags_m, size_t mapnum,
       goacc_wait (async, num_waits, &ap);
       va_end (ap);
     }
-  else if (num_waits == acc_async_noval)
-    acc_wait_all_async (async);
 
   /* Determine whether "finalize" semantics apply to all mappings of this
      OpenACC directive.  */
@@ -520,13 +512,20 @@ GOACC_enter_exit_data (int flags_m, size_t mapnum,
 static void
 goacc_wait (int async, int num_waits, va_list *ap)
 {
-  struct goacc_thread *thr = goacc_thread ();
-  struct gomp_device_descr *acc_dev = thr->dev;
-
   while (num_waits--)
     {
       int qid = va_arg (*ap, int);
-      
+
+      /* Waiting on ACC_ASYNC_NOVAL maps to 'wait all'.  */
+      if (qid == acc_async_noval)
+	{
+	  if (async == acc_async_sync)
+	    acc_wait_all ();
+	  else
+	    acc_wait_all_async (async);
+	  break;
+	}
+
       if (acc_async_test (qid))
 	continue;
 
@@ -537,7 +536,7 @@ goacc_wait (int async, int num_waits, va_list *ap)
 	    launching on, the queue itself will order work as
 	    required, so there's no need to wait explicitly.  */
       else
-	acc_dev->openacc.async_wait_async_func (qid, async);
+	acc_wait_async (qid, async);
     }
 }
 
@@ -559,7 +558,7 @@ GOACC_update (int flags_m, size_t mapnum,
       || (flags & GOACC_FLAG_HOST_FALLBACK))
     return;
 
-  if (num_waits > 0)
+  if (num_waits)
     {
       va_list ap;
 
@@ -567,8 +566,6 @@ GOACC_update (int flags_m, size_t mapnum,
       goacc_wait (async, num_waits, &ap);
       va_end (ap);
     }
-  else if (num_waits == acc_async_noval)
-    acc_wait_all_async (async);
 
   acc_dev->openacc.async_set_async_func (async);
 
