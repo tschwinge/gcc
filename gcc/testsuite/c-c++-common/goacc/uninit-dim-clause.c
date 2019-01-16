@@ -21,7 +21,7 @@ void acc_kernels()
 {
   int i, j, k;
 
-  #pragma acc kernels num_gangs(i) /* { dg-warning "is used uninitialized in this function" } */
+  #pragma acc kernels num_gangs(i) /* { dg-warning "is used uninitialized in this function" "TODO" { xfail *-*-* } } */
   ;
 
   #pragma acc kernels num_workers(j) /* { dg-warning "is used uninitialized in this function" } */
