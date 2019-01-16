@@ -14,11 +14,11 @@ program test
     ENDDO
   ENDDO
 
-  !$acc loop independent gang (3)
+  !$acc loop independent gang (3) ! { dg-bogus "argument not permitted on 'gang' clause in OpenACC 'parallel'" "TODO" { xfail *-*-* } }
   DO i = 1,10
-    !$acc loop worker(3)
+    !$acc loop worker(3) ! { dg-bogus "argument not permitted on 'worker' clause in OpenACC 'parallel'" "TODO" { xfail *-*-* } }
     DO j = 1,10
-      !$acc loop vector(5)
+      !$acc loop vector(5) ! { dg-bogus "argument not permitted on 'vector' clause in OpenACC 'parallel'" "TODO" { xfail *-*-* } }
       DO k = 1,10
       ENDDO
     ENDDO
