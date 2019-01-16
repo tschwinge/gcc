@@ -1094,7 +1094,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
     }
 
   /* This sequence will collect all the top-level statements in the body of
-     the parallel region we are about to construct.  */
+     the data region we are about to construct.  */
   gimple_seq region_body = NULL;
   /* This sequence will collect consecutive statements to be put into a
      gang-single region.  */
@@ -1234,7 +1234,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
   if (region_body == NULL && gang_single_seq == NULL)
     {
       gimple *stmt = gimple_build_nop ();
-      gimple_set_location (stmt, gimple_location (kernels_region));
+      gimple_set_location (stmt, loc);
       gimple_seq_add_stmt (&gang_single_seq, stmt);
       //TODO
       gcc_checking_assert (gang_single_code == -1);
