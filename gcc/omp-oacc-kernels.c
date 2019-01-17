@@ -719,7 +719,7 @@ make_loops_gang_single (gimple_stmt_iterator gsi)
 }
 
 /* Helper function of decompose_kernels_region_body.  The statements in
-   REGION_BODY are expected to be OpenACC parallel regions; add an "async"
+   REGION_BODY are expected to be TODO GIMPLE_OMP_TARGET; add an "async"
    clause to each.  Also add a "wait" pragma at the end of the sequence.  */
 
 static void
@@ -732,7 +732,8 @@ add_async_clauses_and_wait (location_t loc, gimple_seq *region_body)
        gsi_next (&gsi))
     {
       gimple *stmt = gsi_stmt (gsi);
-      gcc_assert (gimple_code (stmt) == GIMPLE_OMP_TARGET);
+      gcc_checking_assert (gimple_code (stmt) == GIMPLE_OMP_TARGET);
+      //TODO If doing that, also verify subcode?
       tree target_clauses = gimple_omp_target_clauses (stmt);
       tree new_async_clause = build_omp_clause (loc, OMP_CLAUSE_ASYNC);
       OMP_CLAUSE_OPERAND (new_async_clause, 0) = default_async_queue;
@@ -741,6 +742,7 @@ add_async_clauses_and_wait (location_t loc, gimple_seq *region_body)
       gimple_omp_target_set_clauses (as_a <gomp_target *> (stmt),
                                      target_clauses);
     }
+  //TODO Shouldn't we wait for "acc_async_noval"?
   /* A "#pragma acc wait" is just a call GOACC_wait (acc_async_sync, 0).  */
   tree wait_fn = builtin_decl_explicit (BUILT_IN_GOACC_WAIT);
   tree sync_arg = build_int_cst (integer_type_node, GOMP_ASYNC_SYNC);
@@ -1091,6 +1093,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
         }
       else
         prev_clause = c;
+      //TODO Is this prev_clause logic alright?
       if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_ASYNC)
         async_clause = c;
     }
