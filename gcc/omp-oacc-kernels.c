@@ -149,6 +149,9 @@ static gimple *
 make_gang_single_region (location_t loc,
                          gimple_seq stmts,
                          int region_code,
+			 tree num_gangs_clause,
+			 tree num_workers_clause,
+			 tree vector_length_clause,
                          tree clauses)
 {
   //TODO Why do we have to unshare at all?
@@ -166,6 +169,30 @@ make_gang_single_region (location_t loc,
       OMP_CLAUSE_CHAIN (gang_single_clause) = clauses;
       clauses = gang_single_clause;
     }
+  else if (region_code == GF_OMP_TARGET_KIND_OACC_KERNELS)
+    {
+      //TODO Do we need to do any other of the processing done in "make_gang_parallel_loop_region" for the "level of parallelism" clauses?
+      if (num_gangs_clause != NULL)
+	{
+	  tree parallel_num_gangs_clause = unshare_expr (num_gangs_clause);
+	  OMP_CLAUSE_CHAIN (parallel_num_gangs_clause) = clauses;
+	  clauses = parallel_num_gangs_clause;
+	}
+      if (num_workers_clause != NULL)
+	{
+	  tree parallel_num_workers_clause = unshare_expr (num_workers_clause);
+	  OMP_CLAUSE_CHAIN (parallel_num_workers_clause) = clauses;
+	  clauses = parallel_num_workers_clause;
+	}
+      if (vector_length_clause != NULL)
+	{
+	  tree parallel_vector_length_clause = unshare_expr (vector_length_clause);
+	  OMP_CLAUSE_CHAIN (parallel_vector_length_clause) = clauses;
+	  clauses = parallel_vector_length_clause;
+	}
+    }
+  else
+    gcc_unreachable ();
 
   /* Build the gang-single region.  */
   gimple *single_region = gimple_build_omp_target (NULL, region_code, clauses);
@@ -1141,6 +1168,9 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
               gimple *single_region
                 = make_gang_single_region (loc, gang_single_seq,
                                            gang_single_code,
+					   num_gangs_clause,
+					   num_workers_clause,
+					   vector_length_clause,
                                            kernels_clauses);
               gimple_seq_add_stmt (&region_body, single_region);
             }
@@ -1190,6 +1220,9 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
               parallel_region
                 = make_gang_single_region (loc, seq,
 					   parallel_code,
+					   num_gangs_clause,
+					   num_workers_clause,
+					   vector_length_clause,
 					   kernels_clauses);
 	      //TODO Do this here or elsewhere?
 	      dump_printf_loc (/* TODO */ MSG_OPTIMIZED_LOCATIONS, gimple_location (omp_for /* TODO or "stmt"? */),
@@ -1259,7 +1292,11 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
     {
       gimple *single_region
         = make_gang_single_region (loc, gang_single_seq,
-                                   gang_single_code, kernels_clauses);
+                                   gang_single_code,
+				   num_gangs_clause,
+				   num_workers_clause,
+				   vector_length_clause,
+                                   kernels_clauses);
       gimple_seq_add_stmt (&region_body, single_region);
     }
 
