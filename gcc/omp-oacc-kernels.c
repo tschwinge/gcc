@@ -294,6 +294,7 @@ adjust_nested_loop_clauses (gimple_stmt_iterator *gsi_p, bool *,
               else if (OMP_CLAUSE_OPERAND (loop_clause, 0) != NULL &&
                        OMP_CLAUSE_OPERAND (*outer_clause_ptr, 0) != NULL)
                 {
+#if 1
                   const char *clause_name
                     = omp_clause_code_name[OMP_CLAUSE_CODE (loop_clause)];
                   error_at (gimple_location (stmt),
@@ -302,6 +303,30 @@ adjust_nested_loop_clauses (gimple_stmt_iterator *gsi_p, bool *,
                   inform (OMP_CLAUSE_LOCATION (*outer_clause_ptr),
                           "location of the previous annotation "
                           "in the same loop nest");
+#else
+		  //TODO A previous version did the following.
+		  //TODO Is it really worth it to do the following special-casing?
+		  //TODO The PGI compiler that I tested on one example unconditional errors out: "PGC-S-0155-gang(x) not allowed in a kernels region having num_gangs".
+		  //TODO But allowing this special case won't hurt, I guess?
+		  //TODO ... but why a warning instead of an error?
+                  /* See if both of these are the same constant.  If they
+                     aren't, emit a warning.  */
+                  tree old_op = OMP_CLAUSE_OPERAND (*outer_clause_ptr, 0);
+                  tree new_op = OMP_CLAUSE_OPERAND (loop_clause, 0);
+                  if (!(cst_and_fits_in_hwi (old_op) &&
+                        cst_and_fits_in_hwi (new_op) &&
+                        int_cst_value (old_op) == int_cst_value (new_op)))
+                    {
+                      warning_at (gimple_location (stmt), 0,
+                                  "cannot honor conflicting %qs annotation",
+                                  clause_name);
+                      inform (OMP_CLAUSE_LOCATION (*outer_clause_ptr),
+                              "location of the previous annotation "
+                              "in the same loop nest");
+		      //TODO What's the rationale for annulating the outer clause's argument?
+                      OMP_CLAUSE_OPERAND (*outer_clause_ptr, 0) = NULL;
+                    }
+#endif
                   OMP_CLAUSE_OPERAND (loop_clause, 0) = NULL;
                 }
             }
@@ -401,6 +426,7 @@ make_gang_parallel_loop_region (location_t loc, gimple *omp_for, gimple *stmt,
                         "argument not permitted on %qs clause"
                         " in OpenACC %<kernels%> region with a %qs clause",
                         clause_name, parent_clause_name);
+	      //TODO Is this useful to have?
               inform (OMP_CLAUSE_LOCATION (clause_to_check),
                       "location of OpenACC %<kernels%> region");
             }
