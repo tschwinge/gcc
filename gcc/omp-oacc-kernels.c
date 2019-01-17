@@ -697,6 +697,7 @@ add_async_clauses_and_wait (location_t loc, gimple_seq *region_body)
   gimple_seq_add_stmt (region_body, wait_call);
 }
 
+//TODO From a quick look, the algorithm seems plausible, but I have not reviewed it and its implementation in detail.
 /* Auxiliary analysis of the body of a kernels region, to determine for each
    OpenACC loop whether it is control-dependent (i.e., not necessarily
    executed every time the kernels region is entered) or not.
