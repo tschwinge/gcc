@@ -1289,6 +1289,10 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
             {
               /* Remove and issue warnings about gang clauses on any OpenACC
                  loops nested inside this sequentially executed statement.  */
+	      //TODO Is a warning really appropriate, instead of being "noise" to the user?
+	      //TODO Verify: Doesn't the OpenACC standard permit the implementation to "reduce"/ignore gang([...]) etc. parallelism if so desired by the implelemntation?
+	      //TODO Maybe this is a candidate for the "-Wextra" group of warnings?
+	      //TODO Maybe this is a candidate for the "-fopt-info" group of diagnostics?
               make_loops_gang_single (gsi);
             }
         }
