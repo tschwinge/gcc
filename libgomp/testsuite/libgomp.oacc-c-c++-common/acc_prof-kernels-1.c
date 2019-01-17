@@ -36,7 +36,7 @@ static int acc_device_num;
 static int num_gangs, num_workers, vector_length;
 static int async;
 
-void cb_enqueue_launch_start (acc_prof_info *prof_info, acc_event_info *event_info, acc_api_info *api_info)
+static void cb_enqueue_launch_start (acc_prof_info *prof_info, acc_event_info *event_info, acc_api_info *api_info)
 {
   DEBUG_printf ("%s\n", __FUNCTION__);
 
@@ -121,6 +121,52 @@ void cb_enqueue_launch_start (acc_prof_info *prof_info, acc_event_info *event_in
   assert (api_info->async_handle == NULL);
 }
 
+static void cb_wait_start (acc_prof_info *prof_info, acc_event_info *event_info, acc_api_info *api_info)
+{
+  DEBUG_printf ("%s\n", __FUNCTION__);
+
+  //TODO
+  abort ();
+
+  assert (acc_device_type != acc_device_host);
+
+  assert (state == 1);
+  STATE_OP (state, = 2);
+
+  assert (prof_info->event_type == acc_ev_wait_start);
+  assert (prof_info->valid_bytes == _ACC_PROF_INFO_VALID_BYTES);
+  assert (prof_info->version == _ACC_PROF_INFO_VERSION);
+  assert (prof_info->device_type == acc_device_type);
+  assert (prof_info->device_number == acc_device_num);
+  assert (prof_info->thread_id == -1);
+  //TODO
+  assert (prof_info->async == async);
+  assert (prof_info->async_queue == prof_info->async);
+  assert (prof_info->src_file == NULL);
+  assert (prof_info->func_name == NULL);
+  assert (prof_info->line_no == -1);
+  assert (prof_info->end_line_no == -1);
+  assert (prof_info->func_line_no == -1);
+  assert (prof_info->func_end_line_no == -1);
+
+  assert (event_info->other_event.event_type == prof_info->event_type);
+  assert (event_info->other_event.valid_bytes == _ACC_OTHER_EVENT_INFO_VALID_BYTES);
+  assert (event_info->other_event.parent_construct == acc_construct_parallel);
+  assert (event_info->other_event.implicit == 1);
+  assert (event_info->other_event.tool_info == NULL);
+
+  if (acc_device_type == acc_device_host)
+    assert (api_info->device_api == acc_device_api_none);
+  else
+    assert (api_info->device_api == acc_device_api_cuda);
+  assert (api_info->valid_bytes == _ACC_API_INFO_VALID_BYTES);
+  assert (api_info->device_type == prof_info->device_type);
+  assert (api_info->vendor == -1);
+  assert (api_info->device_handle == NULL);
+  assert (api_info->context_handle == NULL);
+  assert (api_info->async_handle == NULL);
+}
+
 static acc_prof_reg reg;
 static acc_prof_reg unreg;
 static acc_prof_lookup_func lookup;
@@ -137,6 +183,7 @@ int main()
 {
   STATE_OP (state, = 0);
   reg (acc_ev_enqueue_launch_start, cb_enqueue_launch_start, acc_reg);
+  reg (acc_ev_wait_start, cb_wait_start, acc_reg);
   assert (state == 0);
 
   acc_device_type = acc_get_device_type ();
@@ -166,9 +213,16 @@ int main()
     asm volatile ("" : : : "memory");
 #endif
     if (acc_device_type == acc_device_host)
-      assert (state == 0); /* No acc_ev_enqueue_launch_start.  */
+      /* No acc_ev_enqueue_launch_start, acc_ev_wait_start.  */
+      assert (state == 0);
     else
+    //TODO
+#if 0
+      assert (state == 2);
+#else
+      /* No acc_ev_wait_start.  */
       assert (state == 1);
+#endif
     for (int i = 0; i < N; ++i)
       if (x[i] != i * i)
 	__builtin_abort ();
@@ -203,9 +257,20 @@ int main()
     asm volatile ("" : : : "memory");
 #endif
     if (acc_device_type == acc_device_host)
-      assert (state == 0); /* No acc_ev_enqueue_launch_start.  */
+      /* No acc_ev_enqueue_launch_start, acc_ev_wait_start.  */
+      assert (state == 0);
     else
+      /* No acc_ev_wait_start.  */
       assert (state == 1);
+#pragma acc wait
+    //TODO
+#if 0
+    if (acc_device_type == acc_device_host)
+      /* No acc_ev_wait_start.  */
+      assert (state == 0);
+    else
+      assert (state == 2);
+#endif
     for (int i = 0; i < N; ++i)
       if (x[i] != i * i)
 	__builtin_abort ();
@@ -240,9 +305,20 @@ int main()
     asm volatile ("" : : : "memory");
 #endif
     if (acc_device_type == acc_device_host)
-      assert (state == 0); /* No acc_ev_enqueue_launch_start.  */
+      /* No acc_ev_enqueue_launch_start, acc_ev_wait_start.  */
+      assert (state == 0);
     else
+      /* No acc_ev_enqueue_launch_start.  */
       assert (state == 1);
+#pragma acc wait(async)
+    //TODO
+#if 0
+    if (acc_device_type == acc_device_host)
+      /* No acc_ev_wait_start.  */
+      assert (state == 0);
+    else
+      assert (state == 2);
+#endif
     for (int i = 0; i < N; ++i)
       if (x[i] != i * i)
 	__builtin_abort ();
