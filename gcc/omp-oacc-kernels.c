@@ -671,9 +671,6 @@ add_async_clauses_and_wait (location_t loc, gimple_seq *region_body)
       gimple *stmt = gsi_stmt (gsi);
       gcc_assert (gimple_code (stmt) == GIMPLE_OMP_TARGET);
       tree target_clauses = gimple_omp_target_clauses (stmt);
-      location_t loc
-        = (target_clauses != NULL ? OMP_CLAUSE_LOCATION (target_clauses)
-                                  : UNKNOWN_LOCATION);
       tree new_async_clause = build_omp_clause (loc, OMP_CLAUSE_ASYNC);
       OMP_CLAUSE_OPERAND (new_async_clause, 0) = default_async_queue;
       OMP_CLAUSE_CHAIN (new_async_clause) = target_clauses;
