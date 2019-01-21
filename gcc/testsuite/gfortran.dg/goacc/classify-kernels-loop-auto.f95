@@ -1,8 +1,7 @@
 ! Check offloaded function's attributes and classification for OpenACC
-! 'kernels'.
+! 'kernels loop auto'.
 
 ! { dg-additional-options "-O2" }
-! { dg-additional-options "-fopt-info-optimized-omp" }
 ! { dg-additional-options "-fdump-tree-ompexp" }
 ! { dg-additional-options "-fdump-tree-parloops1-all" }
 ! { dg-additional-options "-fdump-tree-oaccdevlow" }
@@ -15,15 +14,15 @@ program main
 
   call setup(a, b)
 
-  !$acc kernels copyin (a(0:n-1), b(0:n-1)) copyout (c(0:n-1))
-  do i = 0, n - 1 ! { dg-message "note: assigned OpenACC gang loop parallelism" }
+  !$acc kernels loop auto copyin (a(0:n-1), b(0:n-1)) copyout (c(0:n-1))
+  do i = 0, n - 1
      c(i) = a(i) + b(i)
   end do
-  !$acc end kernels
+  !$acc end kernels loop
 end program main
 
 ! Check the offloaded function's attributes.
-! { dg-final { scan-tree-dump-times "(?n)__attribute__\\(\\(oacc kernels, oacc kernels parallelized, oacc parallel_kernels_gang_single, omp target entrypoint\\)\\)" 1 "ompexp" } }
+! { dg-final { scan-tree-dump-times "(?n)__attribute__\\(\\(oacc kernels, omp target entrypoint\\)\\)" 1 "ompexp" } }
 
 ! Check that exactly one OpenACC kernels construct is analyzed, and that it
 ! can be parallelized.
@@ -33,6 +32,6 @@ end program main
 
 ! Check the offloaded function's classification and compute dimensions (will
 ! always be 1 x 1 x 1 for non-offloading compilation).
-! { dg-final { scan-tree-dump-times "(?n)Function is parallelized OpenACC kernels_parallel_kernels_parallelized offload" 1 "oaccdevlow" } }
+! { dg-final { scan-tree-dump-times "(?n)Function is parallelized OpenACC kernels offload" 1 "oaccdevlow" } }
 ! { dg-final { scan-tree-dump-times "(?n)Compute dimensions \\\[1, 1, 1\\\]" 1 "oaccdevlow" } }
-! { dg-final { scan-tree-dump-times "(?n)__attribute__\\(\\(oacc function \\(1, 1, 1\\), oacc kernels, oacc kernels parallelized, oacc parallel_kernels_gang_single_, omp target entrypoint\\)\\)" 1 "oaccdevlow" } }
+! { dg-final { scan-tree-dump-times "(?n)__attribute__\\(\\(oacc function \\(1, 1, 1\\), oacc kernels parallelized, oacc function \\(, , \\), oacc kernels, omp target entrypoint\\)\\)" 1 "oaccdevlow" } }
