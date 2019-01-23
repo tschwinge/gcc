@@ -6962,6 +6962,8 @@ expand_omp_target (struct omp_region *region)
     case GF_OMP_TARGET_KIND_OACC_SERIAL:
       //TODO
     case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+      //TODO
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
       oacc_parallel = true;
       gcc_fallthrough ();
     case GF_OMP_TARGET_KIND_REGION:
@@ -6977,6 +6979,7 @@ expand_omp_target (struct omp_region *region)
     case GF_OMP_TARGET_KIND_DATA:
     case GF_OMP_TARGET_KIND_OACC_DATA:
     case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
+    case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
       data_region = true;
       break;
     default:
@@ -7014,8 +7017,18 @@ expand_omp_target (struct omp_region *region)
       DECL_ATTRIBUTES (child_fn)
 	= tree_cons (get_identifier ("oacc kernels parallelized"),
 		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
-      /* FALLTHRU */
+      goto kernels;
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+      DECL_ATTRIBUTES (child_fn)
+	= tree_cons (get_identifier ("oacc parallel_kernels_gang_single"),
+		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
+      //TODO Is this useful?
+      DECL_ATTRIBUTES (child_fn)
+	= tree_cons (get_identifier ("oacc kernels parallelized"),
+		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
+      goto kernels;
     case GF_OMP_TARGET_KIND_OACC_KERNELS:
+    kernels:
       DECL_ATTRIBUTES (child_fn)
 	= tree_cons (get_identifier ("oacc kernels"),
 		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
@@ -7237,10 +7250,12 @@ expand_omp_target (struct omp_region *region)
     case GF_OMP_TARGET_KIND_OACC_PARALLEL:
     case GF_OMP_TARGET_KIND_OACC_SERIAL:
     case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
       start_ix = BUILT_IN_GOACC_PARALLEL;
       break;
     case GF_OMP_TARGET_KIND_OACC_DATA:
     case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
+    case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
       start_ix = BUILT_IN_GOACC_DATA_START;
       break;
     case GF_OMP_TARGET_KIND_OACC_UPDATE:
@@ -8082,6 +8097,8 @@ build_omp_regions_1 (basic_block bb, struct omp_region *parent,
 		case GF_OMP_TARGET_KIND_OACC_DATA:
 		case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
 		case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+		case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+		case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
 		  if (is_gimple_omp_oacc (stmt))
 		    region->kind = gimple_omp_target_kind (stmt);
 		  break;
@@ -8332,6 +8349,8 @@ omp_make_gimple_edges (basic_block bb, struct omp_region **region,
 	case GF_OMP_TARGET_KIND_OACC_DATA:
 	case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
 	case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+	case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+	case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
 	  break;
 	case GF_OMP_TARGET_KIND_UPDATE:
 	case GF_OMP_TARGET_KIND_ENTER_DATA:

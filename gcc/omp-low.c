@@ -169,7 +169,10 @@ is_oacc_parallel_or_serial (omp_context *ctx)
 		  == GF_OMP_TARGET_KIND_OACC_SERIAL)
 	      //TODO
 	      || (gimple_omp_target_kind (ctx->stmt)
-		  == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED)));
+		  == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED)
+	      //TODO
+	      || (gimple_omp_target_kind (ctx->stmt)
+		  == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE)));
 }
 
 /* Return true if CTX corresponds to an oacc kernels region.  */
@@ -2913,6 +2916,8 @@ check_omp_nesting_restrictions (gimple *stmt, omp_context *ctx)
 		  case GF_OMP_TARGET_KIND_OACC_SERIAL:
 		    //TODO
 		  case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+		    //TODO
+		  case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
 		    ok = true;
 		    break;
 
@@ -3336,8 +3341,11 @@ check_omp_nesting_restrictions (gimple *stmt, omp_context *ctx)
 	      stmt_name = "enter/exit data"; break;
 	    case GF_OMP_TARGET_KIND_OACC_HOST_DATA: stmt_name = "host_data";
 	      break;
-	      //TODO Once we have identified/verified the corresponding test cases, will this just be "kernels", too, because that's the proper diagnostic the user is expecting to see?
-	    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED: stmt_name = "parallel_kernels_parallelized"; break;
+	    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+	    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+	    case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
+	      /* These three cases arise from kernels conversion.  */
+	      stmt_name = "kernels"; break;
 	    default: gcc_unreachable ();
 	    }
 	  switch (gimple_omp_target_kind (ctx->stmt))
@@ -3354,8 +3362,12 @@ check_omp_nesting_restrictions (gimple *stmt, omp_context *ctx)
 	    case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
 	      ctx_stmt_name = "host_data"; break;
 	    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
-	      //TODO Once we have identified/verified the corresponding test cases, will this just be "kernels", too, because that's the proper diagnostic the user is expecting to see?
-	      ctx_stmt_name = "parallel_kernels_parallelized"; break;
+	      ctx_stmt_name = "kernels"; break;
+	    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+	      ctx_stmt_name = "kernels"; break;
+	    case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
+	      /* These three cases arise from kernels conversion.  */
+	      ctx_stmt_name = "kernels"; break;
 	    default: gcc_unreachable ();
 	    }
 
@@ -5387,7 +5399,10 @@ lower_oacc_reductions (location_t loc, tree clauses, tree level, bool inner,
 			    != GF_OMP_TARGET_KIND_OACC_SERIAL)
 			//TODO
 			&& (gimple_omp_target_kind (probe->stmt)
-			    != GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED))
+			    != GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED)
+			//TODO
+			&& (gimple_omp_target_kind (probe->stmt)
+			    != GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE))
 		      goto do_lookup;
 
 		    cls = gimple_omp_target_clauses (probe->stmt);
@@ -8163,11 +8178,13 @@ lower_omp_target (gimple_stmt_iterator *gsi_p, omp_context *ctx)
     case GF_OMP_TARGET_KIND_OACC_ENTER_EXIT_DATA:
     case GF_OMP_TARGET_KIND_OACC_DECLARE:
     case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
       data_region = false;
       break;
     case GF_OMP_TARGET_KIND_DATA:
     case GF_OMP_TARGET_KIND_OACC_DATA:
     case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
+    case GF_OMP_TARGET_KIND_OACC_KERNELS_DATA:
       data_region = true;
       break;
     default:
