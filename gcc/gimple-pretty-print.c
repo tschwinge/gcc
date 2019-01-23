@@ -1623,6 +1623,9 @@ dump_gimple_omp_target (pretty_printer *buffer, gomp_target *gs,
     case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
       kind = " oacc_host_data";
       break;
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+      kind = " oacc_parallel_kernels_parallelized";
+      break;
     default:
       gcc_unreachable ();
     }

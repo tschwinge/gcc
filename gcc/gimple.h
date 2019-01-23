@@ -184,6 +184,9 @@ enum gf_mask {
     GF_OMP_TARGET_KIND_OACC_DECLARE = 10,
     GF_OMP_TARGET_KIND_OACC_HOST_DATA = 11,
     GF_OMP_TARGET_KIND_OACC_SERIAL = 12,
+    /* A GF_OMP_TARGET_KIND_OACC_PARALLEL that originates from a 'kernels'
+       construct, parallelized.  */
+    GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED = 13,
     GF_OMP_TEAMS_GRID_PHONY	= 1 << 0,
 
     /* True on an GIMPLE_OMP_RETURN statement if the return does not require
@@ -6306,6 +6309,7 @@ is_gimple_omp_oacc (const gimple *stmt)
 	case GF_OMP_TARGET_KIND_OACC_ENTER_EXIT_DATA:
 	case GF_OMP_TARGET_KIND_OACC_DECLARE:
 	case GF_OMP_TARGET_KIND_OACC_HOST_DATA:
+	case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
 	  return true;
 	default:
 	  return false;
@@ -6331,6 +6335,7 @@ is_gimple_omp_offloaded (const gimple *stmt)
 	case GF_OMP_TARGET_KIND_OACC_PARALLEL:
 	case GF_OMP_TARGET_KIND_OACC_KERNELS:
 	case GF_OMP_TARGET_KIND_OACC_SERIAL:
+	case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
 	  return true;
 	default:
 	  return false;
