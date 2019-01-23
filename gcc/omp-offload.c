@@ -1199,7 +1199,6 @@ oacc_loop_fixed_partitions (oacc_loop *loop, unsigned outer_mask)
 
   if (!loop->routine)
     {
-      bool auto_par = (loop->flags & OLF_AUTO) != 0;
       bool seq_par = (loop->flags & OLF_SEQ) != 0;
       bool tiling = (loop->flags & OLF_TILE) != 0;
       
@@ -1211,14 +1210,11 @@ oacc_loop_fixed_partitions (oacc_loop *loop, unsigned outer_mask)
       bool maybe_auto
 	= !seq_par && this_mask == (tiling ? this_mask & -this_mask : 0);
 
-      if ((this_mask != 0) + auto_par + seq_par > 1)
+      if ((this_mask != 0) + seq_par > 1)
 	{
 	  if (noisy)
 	    error_at (loop->loc,
-		      seq_par
-		      ? G_("%<seq%> overrides other OpenACC loop specifiers")
-		      : G_("%<auto%> conflicts with other OpenACC loop "
-			   "specifiers"));
+		      G_("%<seq%> overrides other OpenACC loop specifiers"));
 	  maybe_auto = false;
 	  loop->flags &= ~OLF_AUTO;
 	  if (seq_par)
