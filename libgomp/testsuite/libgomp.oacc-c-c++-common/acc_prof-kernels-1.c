@@ -50,7 +50,9 @@ void cb_enqueue_launch_start (acc_prof_info *prof_info, acc_event_info *event_in
   assert (prof_info->device_type == acc_device_type);
   assert (prof_info->device_number == acc_device_num);
   assert (prof_info->thread_id == -1);
-  assert (prof_info->async == acc_async_sync);
+  /* By default, each parallel kernel inside a kernels region is launched
+     asynchronously. */
+  assert (prof_info->async == acc_async_noval);
   assert (prof_info->async_queue == prof_info->async);
   assert (prof_info->src_file == NULL);
   assert (prof_info->func_name == NULL);

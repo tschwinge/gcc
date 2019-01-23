@@ -1284,7 +1284,7 @@ public:
   /* opt_pass methods: */
   virtual bool gate (function *)
   {
-    return flag_openacc && flag_openacc_convert_kernels;
+    return flag_openacc;
   }
   virtual unsigned int execute (function *)
   {

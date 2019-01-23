@@ -1,5 +1,4 @@
 /* { dg-additional-options "-O2" } */
-/* { dg-additional-options "-fopenacc-convert-kernels" } */
 /* { dg-additional-options "-fdump-tree-convert_oacc_kernels" } */
 
 #define N 1024

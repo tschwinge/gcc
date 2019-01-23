@@ -73,10 +73,12 @@ subroutine test (a, b, sarg, n)
   end do
 end subroutine test
 
-! { dg-final { scan-tree-dump-times "gang\\(static:\\\*\\)" 1 "omplower" } }
+! { dg-final { scan-tree-dump-times "gang\\(static:\\\*\\)" 2 "omplower" } }
 ! { dg-final { scan-tree-dump-times "gang\\(static:1\\)" 1 "omplower" } }
 ! { dg-final { scan-tree-dump-times "gang\\(static:2\\)" 1 "omplower" } }
 ! { dg-final { scan-tree-dump-times "gang\\(static:5\\)" 1 "omplower" } }
-! { dg-final { scan-tree-dump-times "gang\\(static:20\\)" 1 "omplower" } }
-! { dg-final { scan-tree-dump-times "gang\\(num: 5 static:\\\*\\)" 1 "omplower" } }
-! { dg-final { scan-tree-dump-times "gang\\(num: 30 static:20\\)" 1 "omplower" } }
+! { dg-final { scan-tree-dump-times "gang\\(static:20\\)" 2 "omplower" } }
+
+! Check that the num: arguments are moved to the enclosing parallel region.
+! { dg-final { scan-tree-dump-times "oacc_parallel_kernels_parallelized .* num_gangs\\(5\\)" } }
+! { dg-final { scan-tree-dump-times "oacc_parallel_kernels_parallelized .* num_gangs\\(30\\)" } }
