@@ -1621,17 +1621,16 @@ execute_oacc_device_lower ()
     gcc_checking_assert (!is_oacc_kernels);
   bool is_oacc_parallel_kernels_gang_single
     = (lookup_attribute ("oacc parallel_kernels_gang_single",
-            DECL_ATTRIBUTES (current_function_decl)) != NULL);
+			 DECL_ATTRIBUTES (current_function_decl)) != NULL);
   if (is_oacc_parallel_kernels_gang_single)
-    gcc_checking_assert (is_oacc_kernels
-			 && is_oacc_kernels_parallelized);
+    gcc_checking_assert (!is_oacc_kernels);
   gcc_checking_assert (!(is_oacc_parallel_kernels_parallelized
 			 && is_oacc_parallel_kernels_gang_single));
 
   /* Unparallelized OpenACC kernels constructs must get launched as 1 x 1 x 1
      kernels, so remove the parallelism dimensions function attributes
      potentially set earlier on.  */
-  //TODO gang_single
+  //TODO? gang_single (probably not relevant here)
   if (is_oacc_kernels && !is_oacc_kernels_parallelized)
     {
       oacc_set_fn_attrib (current_function_decl, NULL, NULL);
@@ -1654,6 +1653,9 @@ execute_oacc_device_lower ()
       else if (is_oacc_parallel_kernels_parallelized)
 	fprintf (dump_file, "Function is %s OpenACC kernels offload\n",
 		 "parallel_kernels_parallelized");
+      else if (is_oacc_parallel_kernels_gang_single)
+	fprintf (dump_file, "Function is %s OpenACC kernels offload\n",
+		 "parallel_kernels_gang_single");
       else
 	fprintf (dump_file, "Function is OpenACC parallel offload\n");
     }
