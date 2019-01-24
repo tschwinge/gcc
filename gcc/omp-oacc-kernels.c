@@ -1,3 +1,5 @@
+#define IF_DEBUG if(getenv("DEBUG"))
+
 /* Transformation pass for OpenACC kernels regions.  Converts a kernels
    region into a series of smaller parallel regions.  There is a parallel
    region for each parallelizable loop nest, as well as a "gang-single"
@@ -39,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple-iterator.h"
 #include "gimple-walk.h"
 #include "gomp-constants.h"
+#include "omp-general.h"
 
 /* This is a preprocessing pass to be run immediately before lower_omp.  It
    will convert OpenACC "kernels" regions into sequences of "parallel"
@@ -141,25 +144,27 @@ top_level_omp_for_in_stmt (gimple *stmt)
    to force gang-single execution.  */
 
 static gimple *
-make_gang_single_region (location_t loc, gimple_seq stmts, tree clauses)
+make_gang_single_region (location_t loc,
+                         gimple_seq stmts,
+                         int region_code,
+                         tree clauses)
 {
   /* This correctly copies the entire chain of clauses rooted here.  */
   clauses = unshare_expr (clauses);
   //TODO Is adding a "num_gangs(1)" clause actually still necessary/useful
   // given that we now have
   // "GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE"?
-  /* Make a num_gangs(1) clause.  */
-//tree gang_single_clause = build_omp_clause (loc, OMP_CLAUSE_NUM_GANGS);
-//OMP_CLAUSE_OPERAND (gang_single_clause, 0) = integer_one_node;
-//OMP_CLAUSE_CHAIN (gang_single_clause) = clauses;
-//clauses = gang_single_clause;
+  if (region_code == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE)
+    {
+      /* Make a num_gangs(1) clause.  */
+      tree gang_single_clause = build_omp_clause (loc, OMP_CLAUSE_NUM_GANGS);
+      OMP_CLAUSE_OPERAND (gang_single_clause, 0) = integer_one_node;
+      OMP_CLAUSE_CHAIN (gang_single_clause) = clauses;
+      clauses = gang_single_clause;
+    }
 
   /* Build the gang-single region.  */
-  gimple *single_region
-    = gimple_build_omp_target (
-        NULL,
-        GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE,
-        clauses);
+  gimple *single_region = gimple_build_omp_target (NULL, region_code, clauses);
   gimple_set_location (single_region, loc);
   gbind *single_body = gimple_build_bind (NULL, stmts, make_node (BLOCK));
   gimple_omp_set_body (single_region, single_body);
@@ -887,8 +892,92 @@ control_flow_regions::compute_regions (gimple_seq seq)
     }
 }
 
+
+/* Helper for determine_region_sequence_code.  */
+
+static tree
+determine_region_sequence_code_walk_stmt_fn (gimple_stmt_iterator *gsi_p, bool *handled_ops_p, struct walk_stmt_info *wi)
+{
+  int *sequence_code = (int *) wi->info;
+
+  //TODO Default "*handled_ops_p = false;".
+
+  gimple *stmt = gsi_stmt (*gsi_p);
+  IF_DEBUG
+    {
+      printf("%s %d: visiting %p\n", __FUNCTION__, __LINE__,
+	     (void *) stmt);
+      extern void debug_gimple_stmt (gimple *);
+      debug_gimple_stmt(stmt);
+    }
+  switch (gimple_code (stmt))
+    {
+      //TODO Is this redundant with default "*handled_ops_p = false;"?
+      //TODO WALK_SUBSTMTS;
+
+    case GIMPLE_OMP_FOR:
+      {
+	tree clauses = gimple_omp_for_clauses (stmt);
+	//TODO (for later) Adjust clauses elsewhere, so that we can be sure to here always have exactly one of 'independent', 'seq', or 'auto'.
+	if (omp_find_clause (clauses, OMP_CLAUSE_INDEPENDENT)
+	    || omp_find_clause (clauses, OMP_CLAUSE_SEQ))
+	  /* Recurse into loop body.  */
+	  break;
+	else
+	  {
+	    /* Explicit or implicit 'auto' clause.  */
+	    *sequence_code = GF_OMP_TARGET_KIND_OACC_KERNELS;
+	    /* Rationale: the user would like this loop analyzed ('auto' clause) and typically parallelized, but we don't have available here the compiler logic to analyze this, so can't parallelize it here, so we'd very likely be running into a performance problem if we were to execute this unparallelized, thus -- for the time being -- forward the whole loop nest to "parloops".  */
+	    IF_DEBUG
+	      printf("  -> PARLOOPS\n");
+	    //TODO Terminate or keeping going?
+	    //TODO Terminate, because this is a final decision for this region.
+	    *handled_ops_p = true;
+	    //TODO Have to return non-NULL.
+	    //TODO Useful to return the "problematic" stmt?
+	    return integer_zero_node;
+	  }
+	gcc_unreachable ();
+      }
+
+      //TODO (for later?) Is the following actually too strict?  The idea is to detect any kind of looping.  Will it be sufficient to look for backward jumps only?
+      //TODO (Gergő?) This can't use "control_flow_regions" by chance?
+      //TODO I say "TODO (for later?)" because with the current (possibly too strict) variant, we're not pessimizing/regressing anything.  TODO Correct?
+      //TODO We can then later incrementally improve this to be not so strict.
+    case GIMPLE_COND:
+    case GIMPLE_GOTO:
+    case GIMPLE_SWITCH:
+      *sequence_code = GF_OMP_TARGET_KIND_OACC_KERNELS;
+      /* Rationale: the user would like this loop analyzed (implicit inside a 'kernels' region) and typically parallelized, but we don't have available here the compiler logic to analyze this, so can't parallelize it here, so we'd very likely be running into a performance problem if we were to execute this unparallelized, thus -- for the time being -- forward the whole loop nest to "parloops".  */
+      IF_DEBUG
+	printf("  -> PARLOOPS\n");
+      //TODO Terminate or keeping going?
+      //TODO Terminate, because this is a final decision for this region.
+      *handled_ops_p = true;
+      //TODO Have to return non-NULL.
+      //TODO Useful to return the "problematic" stmt?
+      return integer_zero_node;
+
+    default:
+      break;
+    }
+
+  return NULL;
+}
+
+/* For the region starting at GSI, adjust the SEQUENCE_CODE.  */
+
+static void
+determine_region_sequence_code (gimple_stmt_iterator *gsi, int *sequence_code)
+{
+  struct walk_stmt_info wi;
+  memset (&wi, 0, sizeof (wi));
+  wi.info = sequence_code;
+  walk_gimple_stmt (gsi, determine_region_sequence_code_walk_stmt_fn, NULL, &wi);
+}
+
 /* Decompose the body of the KERNELS_REGION, which was originally annotated
-   with the KERNELS_CLAUSES, into a series of parallel regions.  */
+   with the KERNELS_CLAUSES, into a series of regions.  */
 
 static gimple *
 decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
@@ -1010,6 +1099,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
   /* This sequence will collect consecutive statements to be put into a
      gang-single region.  */
   gimple_seq gang_single_seq = NULL;
+  int gang_single_code = -1;  /* Invalid code.  */
   /* Flag recording whether the gang_single_seq only contains copies to
      local variables.  These may be loop setup code that should not be
      separated from the loop.  */
@@ -1020,6 +1110,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
   control_flow_regions cf_regions (body_sequence);
 
   /* Iterate over the statements in the kernels region's body.  */
+  //TODO (for later?) Could this loop actually be combined with what "determine_region_sequence_code" is doing, so that we don't have to scan/handle each region twice?  On the other hand, here we're not recursing into anything, so the scan/handling is simple.
   size_t idx = 0;
   gimple_stmt_iterator gsi, gsi_n;
   for (gsi = gsi_start (body_sequence); !gsi_end_p (gsi); gsi = gsi_n, idx++)
@@ -1034,13 +1125,14 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
       if (omp_for != NULL
           && cf_regions.is_unconditional_oacc_for_loop (stmt, idx))
         {
-          /* This is an OMP for statement, put it into a parallel region.
-             But first, construct a gang-single region containing any
+          /* This is an OMP for statement, put it into a separate region.
+             But first, construct a TODO gang-single region containing any
              complex sequential statements we may have seen.  */
           if (gang_single_seq != NULL && !only_simple_assignments)
             {
               gimple *single_region
                 = make_gang_single_region (loc, gang_single_seq,
+                                           gang_single_code,
                                            kernels_clauses);
               gimple_seq_add_stmt (&region_body, single_region);
             }
@@ -1057,20 +1149,64 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
                                         make_node (BLOCK));
             }
           gang_single_seq = NULL;
+          gang_single_code = -1;  // TODO
           only_simple_assignments = true;
 
-          gimple *parallel_region
+	  //TODO
+	  int parallel_code = GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED;
+	  /* Rationale.  This is what we'll be doing if the loop nest's inner loops don't contain anything unexpected (essentially, no GIMPLE_OMP_FOR with (explicit or implicit) 'auto' clause, and no un-annotated loops), and we can thus parallelize it.  We'll also "parallelize" if at some level a loop construct has been marked up by the user as unparallelizable ('seq' clause; we'll respect that in the later processing), but given that the user has explicitly marked it as such, this loop cannot be performance-critical (and we thus don't have to "avoid offloading"), and in this case it's also fine to "parallelize" instead of "gang-single", because any outer or inner loops may still exploit the parallelism.  */
+	  /* Whenever we're starting a new region, figure out its sequence
+	     code.  */
+	  //TODO Do we look at "stmt" (that is, "gsi"), or rather at "omp_for"?
+	  determine_region_sequence_code (&gsi, &parallel_code);
+	  //TODO
+          gimple *parallel_region;
+	  if (parallel_code == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED)
+	    {
+	      //TODO Re-indent.
+	      parallel_region
             = make_gang_parallel_loop_region (loc, omp_for, stmt,
                                               num_gangs_clause,
                                               num_workers_clause,
                                               vector_length_clause,
                                               kernels_clauses);
+	      //TODO Do this here or elsewhere?
+	      dump_printf_loc (MSG_OPTIMIZED_LOCATIONS, gimple_location (omp_for /* TODO or "stmt"? */),
+			       "TODO GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED\n");
+	    }
+	  else if (parallel_code == GF_OMP_TARGET_KIND_OACC_KERNELS)
+	    {
+	      //TODO
+	      gimple_seq seq = NULL;
+	      gimple_seq_add_stmt (&seq, stmt);
+              parallel_region
+                = make_gang_single_region (loc, seq,
+					   parallel_code,
+					   kernels_clauses);
+	      //TODO Do this here or elsewhere?
+	      dump_printf_loc (/* TODO */ MSG_OPTIMIZED_LOCATIONS, gimple_location (omp_for /* TODO or "stmt"? */),
+			       "TODO GF_OMP_TARGET_KIND_OACC_KERNELS\n");
+	    }
+	  else
+	    gcc_unreachable ();
           gimple_seq_add_stmt (&region_body, parallel_region);
         }
       else
         {
+	  if (gang_single_seq == NULL)
+	    {
+	      gang_single_code = GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE;
+	      /* Rationale.  This is the default, assuming no looping, thus "setup code"; not performance-critical.  */
+	      /* Whenever we're starting a new region, figure out its sequence
+		 code.  */
+	      determine_region_sequence_code (&gsi, &gang_single_code);
+	      //TODO Do this here or elsewhere?
+	      //TODO This is not too useful probably?
+	      dump_printf_loc (/* TODO */ MSG_OPTIMIZED_LOCATIONS, gimple_location (stmt),
+			       "TODO %d\n", gang_single_code);
+	    }
           /* This is not an unconditional OMP for statement, so it will be
-             put into a gang-single region.  */
+             put into a TODO gang-single region.  */
           gimple_seq_add_stmt (&gang_single_seq, stmt);
           /* Is this a simple assignment? We call it simple if it is an
              assignment to an artificial local variable.  This captures
@@ -1081,9 +1217,13 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
                 && DECL_ARTIFICIAL (gimple_assign_lhs (stmt)));
           if (!is_simple_assignment)
             only_simple_assignments = false;
-          /* Remove and issue warnings about gang clauses on any OpenACC
-             loops nested inside this sequentially executed statement.  */
-          make_loops_gang_single (gsi);
+          if (gang_single_code
+              == GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE)
+            {
+              /* Remove and issue warnings about gang clauses on any OpenACC
+                 loops nested inside this sequentially executed statement.  */
+              make_loops_gang_single (gsi);
+            }
         }
     }
 
@@ -1096,13 +1236,22 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
       gimple *stmt = gimple_build_nop ();
       gimple_set_location (stmt, gimple_location (kernels_region));
       gimple_seq_add_stmt (&gang_single_seq, stmt);
+      //TODO
+      gcc_checking_assert (gang_single_code == -1);
+      /* Make sure to not trigger "avoid offloading" for this.  */
+      gang_single_code = GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE;
+      //TODO Do this here or elsewhere?
+      //TODO This is not too useful probably?
+      dump_printf_loc (/* TODO */ MSG_OPTIMIZED_LOCATIONS, gimple_location (stmt),
+		       "TODO %d\n", gang_single_code);
     }
 
   /* Gather up any remaining gang-single statements.  */
   if (gang_single_seq != NULL)
     {
       gimple *single_region
-        = make_gang_single_region (loc, gang_single_seq, kernels_clauses);
+        = make_gang_single_region (loc, gang_single_seq,
+                                   gang_single_code, kernels_clauses);
       gimple_seq_add_stmt (&region_body, single_region);
     }
 
