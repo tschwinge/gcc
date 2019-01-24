@@ -7002,33 +7002,14 @@ expand_omp_target (struct omp_region *region)
   entry_bb = region->entry;
   exit_bb = region->exit;
 
-  if (gimple_omp_target_kind (entry_stmt) == GF_OMP_TARGET_KIND_OACC_KERNELS)
-    mark_loops_in_oacc_kernels_region (region->entry, region->exit);
-
   /* Further down, all OpenACC compute constructs will be mapped to
      BUILT_IN_GOACC_PARALLEL, and to distinguish between them, we now attach
      attributes.  */
   switch (gimple_omp_target_kind (entry_stmt))
     {
-    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
-      DECL_ATTRIBUTES (child_fn)
-	= tree_cons (get_identifier ("oacc parallel_kernels_parallelized"),
-		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
-      DECL_ATTRIBUTES (child_fn)
-	= tree_cons (get_identifier ("oacc kernels parallelized"),
-		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
-      goto kernels;
-    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
-      DECL_ATTRIBUTES (child_fn)
-	= tree_cons (get_identifier ("oacc parallel_kernels_gang_single"),
-		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
-      //TODO Is this useful?
-      DECL_ATTRIBUTES (child_fn)
-	= tree_cons (get_identifier ("oacc kernels parallelized"),
-		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
-      goto kernels;
     case GF_OMP_TARGET_KIND_OACC_KERNELS:
-    kernels:
+      mark_loops_in_oacc_kernels_region (region->entry, region->exit);
+
       DECL_ATTRIBUTES (child_fn)
 	= tree_cons (get_identifier ("oacc kernels"),
 		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
@@ -7036,6 +7017,16 @@ expand_omp_target (struct omp_region *region)
     case GF_OMP_TARGET_KIND_OACC_SERIAL:
       DECL_ATTRIBUTES (child_fn)
 	= tree_cons (get_identifier ("oacc serial"),
+		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
+      break;
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED:
+      DECL_ATTRIBUTES (child_fn)
+	= tree_cons (get_identifier ("oacc parallel_kernels_parallelized"),
+		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
+      break;
+    case GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_GANG_SINGLE:
+      DECL_ATTRIBUTES (child_fn)
+	= tree_cons (get_identifier ("oacc parallel_kernels_gang_single"),
 		     NULL_TREE, DECL_ATTRIBUTES (child_fn));
       break;
     default:

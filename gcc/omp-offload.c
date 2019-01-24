@@ -1618,8 +1618,7 @@ execute_oacc_device_lower ()
     = (lookup_attribute ("oacc parallel_kernels_parallelized",
 			 DECL_ATTRIBUTES (current_function_decl)) != NULL);
   if (is_oacc_parallel_kernels_parallelized)
-    gcc_checking_assert (is_oacc_kernels
-			 && is_oacc_kernels_parallelized);
+    gcc_checking_assert (!is_oacc_kernels);
   bool is_oacc_parallel_kernels_gang_single
     = (lookup_attribute ("oacc parallel_kernels_gang_single",
             DECL_ATTRIBUTES (current_function_decl)) != NULL);
@@ -1649,13 +1648,12 @@ execute_oacc_device_lower ()
 	fprintf (dump_file, "Function is OpenACC routine level %d\n",
 		 fn_level);
       else if (is_oacc_kernels)
-	//TODO gang_single
-	fprintf (dump_file, "Function is %s OpenACC kernels%s offload\n",
+	fprintf (dump_file, "Function is %s OpenACC kernels offload\n",
 		 (is_oacc_kernels_parallelized
-		  ? "parallelized" : "unparallelized"),
-		 //TODO
-		 (is_oacc_parallel_kernels_parallelized
-		  ? " parallel_kernels_parallelized" : ""));
+		  ? "parallelized" : "unparallelized"));
+      else if (is_oacc_parallel_kernels_parallelized)
+	fprintf (dump_file, "Function is %s OpenACC kernels offload\n",
+		 "parallel_kernels_parallelized");
       else
 	fprintf (dump_file, "Function is OpenACC parallel offload\n");
     }
