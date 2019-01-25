@@ -1300,12 +1300,14 @@ transform_kernels_region (gimple *kernels_region)
             default:
               if (kind == GOMP_MAP_ALLOC &&
                   integer_zerop (OMP_CLAUSE_SIZE (c)))
+		//TODO Should add test cases to demonstrate/document that we still get the expected behavior when skipping these here?
                 /* ??? This is an alloc clause for mapping a pointer whose
                    target is already mapped.  We leave these on the inner
                    parallel regions because moving them to the outer data
                    region causes runtime errors.  */
                 break;
 
+	      //TODO Is this the right condition?
               /* For non-artificial variables, and for non-declaration
                  expressions like A[0:n], copy the clause to the data
                  region.  */
@@ -1331,6 +1333,7 @@ transform_kernels_region (gimple *kernels_region)
             case GOMP_MAP_FORCE_TOFROM:
             case GOMP_MAP_FIRSTPRIVATE_POINTER:
             case GOMP_MAP_FIRSTPRIVATE_REFERENCE:
+	      //TODO Should add test cases to demonstrate/document that we still get the expected behavior when skipping these here?
               /* ??? Copying these map kinds leads to internal compiler
                  errors in later passes.  */
               break;
@@ -1341,6 +1344,7 @@ transform_kernels_region (gimple *kernels_region)
           /* If there is an if clause, it must also be present on the
              enclosing data region.  Copy it, temporarily removing its chain
              because otherwise unshare_expr would copy the entire chain.  */
+	  //TODO Is this proper use of unshare_expr, or should we manually build/clone a new clause?
           tree save_chain = OMP_CLAUSE_CHAIN (c);
           OMP_CLAUSE_CHAIN (c) = NULL;
           tree new_if_clause = unshare_expr (c);
@@ -1352,6 +1356,8 @@ transform_kernels_region (gimple *kernels_region)
   /* Restore the original order of the clauses.  */
   data_clauses = nreverse (data_clauses);
 
+  //TODO Instead of doing the following manually, should we construct just OACC_DATA etc. tree nodes, and then re-gimplify, to have gimplify_omp_workshare do the following processing instead of duplicating code here?
+  //TODO Is the other lower_omp_regimplify* stuff related in any way?
   gimple *data_region
     = gimple_build_omp_target (NULL, GF_OMP_TARGET_KIND_OACC_KERNELS_DATA,
                                data_clauses);
@@ -1373,6 +1379,9 @@ transform_kernels_region (gimple *kernels_region)
 
 /* Helper function of convert_oacc_kernels for walking the tree, calling
    transform_kernels_region on each kernels region found.  */
+
+//TODO Does this recurse, so that we properly handle OpenACC nested parallelism?
+//TODO Even if that's currently not supported, we shouldn't introduce new code where it won't work, non-obviously.
 
 static tree
 scan_kernels (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
@@ -1410,7 +1419,9 @@ convert_oacc_kernels (void)
   gimple_seq body = gimple_body (current_function_decl);
 
   memset (&wi, 0, sizeof (wi));
+  //TODO I once ran with walk_gimple_seq instead of walk_gimple_seq_mod.  This didn't run into walk_gimple_seq's gcc_assert, which in hindsight confuses me, because aren't we actually changing the original body to something new?
   walk_gimple_seq_mod (&body, scan_kernels, NULL, &wi);
+  //TODO walk_gimple_seq (body, scan_kernels, NULL, &wi);
 
   gimple_set_body (current_function_decl, body);
 
