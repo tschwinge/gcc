@@ -955,6 +955,25 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
   tree inner_bind_vars = flatten_binds (kernels_bind);
   gimple_seq body_sequence = gimple_bind_body (kernels_bind);
 
+  /* All these inner variables will get allocated on the device (below, by
+     calling maybe_build_inner_data_region).  Here we create "present"
+     clauses for them and add these clauses to the list of clauses to be
+     attached to each inner parallel region.  */
+  tree present_clauses = kernels_clauses;
+  for (tree var = inner_bind_vars; var; var = TREE_CHAIN (var))
+    {
+      if (!DECL_ARTIFICIAL (var) && TREE_CODE (var) != CONST_DECL)
+        {
+          tree present_clause = build_omp_clause (loc, OMP_CLAUSE_MAP);
+          OMP_CLAUSE_SET_MAP_KIND (present_clause, GOMP_MAP_FORCE_PRESENT);
+          OMP_CLAUSE_DECL (present_clause) = var;
+          OMP_CLAUSE_SIZE (present_clause) = DECL_SIZE_UNIT (var);
+          OMP_CLAUSE_CHAIN (present_clause) = present_clauses;
+          present_clauses = present_clause;
+        }
+    }
+  kernels_clauses = present_clauses;
+
   /* In addition to nested binds, the "real" body of the region may be
      nested inside a try-finally block.  Find its cleanup block, which
      contains code to clobber the local variables that must be clobbered.  */
@@ -1054,17 +1073,10 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
              put into a gang-single region.  */
           gimple_seq_add_stmt (&gang_single_seq, stmt);
           /* Is this a simple assignment? We call it simple if it is an
-             assignment with a unary RHS (most likely a copy, possibly from
-             memory) to a local variable.  */
+             assignment to an artificial local variable.  This captures
+             Fortran loop setup code computing loop bounds and offsets.  */
           bool is_simple_assignment
             = (gimple_code (stmt) == GIMPLE_ASSIGN
-                && gimple_assign_rhs2 (stmt) == NULL
-                && TREE_CODE (gimple_assign_lhs (stmt)) == VAR_DECL);
-          /* It is also a simple assignment if it goes to an artificial
-             local variable, no matter how it is computed.  This captures
-             Fortran loop setup code computing loop bounds and offsets.  */
-          is_simple_assignment = is_simple_assignment
-            || (gimple_code (stmt) == GIMPLE_ASSIGN
                 && TREE_CODE (gimple_assign_lhs (stmt)) == VAR_DECL
                 && DECL_ARTIFICIAL (gimple_assign_lhs (stmt)));
           if (!is_simple_assignment)
