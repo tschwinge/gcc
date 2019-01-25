@@ -1632,8 +1632,8 @@ execute_oacc_device_lower ()
   /* Unparallelized OpenACC kernels constructs must get launched as 1 x 1 x 1
      kernels, so remove the parallelism dimensions function attributes
      potentially set earlier on.  */
-  if ((is_oacc_kernels && !is_oacc_kernels_parallelized)
-      || is_oacc_parallel_kernels_gang_single)
+  //TODO gang_single
+  if (is_oacc_kernels && !is_oacc_kernels_parallelized)
     {
       oacc_set_fn_attrib (current_function_decl, NULL, NULL);
       attr = oacc_get_fn_attrib (current_function_decl);
@@ -1648,31 +1648,26 @@ execute_oacc_device_lower ()
       if (fn_level >= 0)
 	fprintf (dump_file, "Function is OpenACC routine level %d\n",
 		 fn_level);
-      else if (is_oacc_parallel_kernels_parallelized
-                || is_oacc_parallel_kernels_gang_single)
-        fprintf (dump_file, "Function is %s OpenACC kernels%s offload\n",
-                  (is_oacc_kernels_parallelized
-                   ? "parallelized" : "unparallelized"),
-                  (is_oacc_kernels_parallelized
-                   ? "_parallel_kernels_parallelized"
-                   : "_parallel_kernels_gang_single"));
       else if (is_oacc_kernels)
-	fprintf (dump_file, "Function is %s OpenACC kernels offload\n",
+	//TODO gang_single
+	fprintf (dump_file, "Function is %s OpenACC kernels%s offload\n",
 		 (is_oacc_kernels_parallelized
-		  ? "parallelized" : "unparallelized"));
+		  ? "parallelized" : "unparallelized"),
+		 //TODO
+		 (is_oacc_parallel_kernels_parallelized
+		  ? " parallel_kernels_parallelized" : ""));
       else
 	fprintf (dump_file, "Function is OpenACC parallel offload\n");
     }
 
   unsigned outer_mask = fn_level >= 0 ? GOMP_DIM_MASK (fn_level) - 1 : 0;
-  unsigned used_mask
-    = oacc_loop_partition (loops, outer_mask,
-                           is_oacc_parallel_kernels_gang_single);
+  unsigned used_mask = oacc_loop_partition (loops, outer_mask,
+                                            is_oacc_parallel_kernels_gang_single);
 
   /* OpenACC kernels constructs are special: they currently don't use the
      generic oacc_loop infrastructure and attribute/dimension processing.  */
-  if ((is_oacc_kernels && is_oacc_kernels_parallelized)
-      || is_oacc_parallel_kernels_parallelized)
+  //TODO? gang_single
+  if (is_oacc_kernels && is_oacc_kernels_parallelized)
     {
       /* Parallelized OpenACC kernels constructs use gang parallelism.  See
 	 also tree-parloops.c:create_parallel_loop.  */
