@@ -90,6 +90,7 @@ proc libgomp_init { args } {
     global TESTING_IN_BUILD_TREE
     global target_triplet
     global always_ld_library_path
+    global gcc_warning_prefix
 
     set blddir [lookfor_file [get_multilibs] libgomp]
 
@@ -116,6 +117,9 @@ proc libgomp_init { args } {
     if ![info exists tmpdir] {
 	set tmpdir "/tmp"
     }
+
+    #TODO This is so that we can use 'dg-message' in libgomp test cases.  Is this in the right place here?
+    set gcc_warning_prefix "warning:"
 
     if [info exists gluefile] {
 	unset gluefile
