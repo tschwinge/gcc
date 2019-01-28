@@ -11,14 +11,14 @@ int main()
 
 #pragma acc kernels
   {
-    int c = 234; /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
+    int c = 234; /* { dg-warning "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
 
-#pragma acc loop independent gang /* { dg-message "note: assigned OpenACC gang loop parallelism" } */
-    /* { dg-message "note: parallelized loop nest in OpenACC .kernels. construct" "" { target *-*-* } .-1 } */
+#pragma acc loop independent gang /* { dg-warning "note: assigned OpenACC gang loop parallelism" } */
+    /* { dg-warning "note: parallelized loop nest in OpenACC .kernels. construct" "" { target *-*-* } 16 } */
     for (int i = 0; i < N; ++i)
       b[i] = c;
 
-    a = c; /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
+    a = c; /* { dg-warning "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
   }
 
   for (int i = 0; i < N; ++i)
