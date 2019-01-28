@@ -1112,9 +1112,11 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
      calling maybe_build_inner_data_region).  Here we create "present"
      clauses for them and add these clauses to the list of clauses to be
      attached to each inner parallel region.  */
+  //TODO Optimization might be to just do that for data actually used in each specific split-out kernel?
   tree present_clauses = kernels_clauses;
   for (tree var = inner_bind_vars; var; var = TREE_CHAIN (var))
     {
+      //TODO Don't understand this logic/conditional yet.
       if (!DECL_ARTIFICIAL (var) && TREE_CODE (var) != CONST_DECL)
         {
           tree present_clause = build_omp_clause (loc, OMP_CLAUSE_MAP);
