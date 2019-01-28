@@ -545,6 +545,7 @@ make_gang_parallel_loop_region (location_t loc, gimple *omp_for, gimple *stmt,
         parallel_body_bind,
         GF_OMP_TARGET_KIND_OACC_PARALLEL_KERNELS_PARALLELIZED,
         clauses);
+  //TODO Should the following actually use "gimple_location (omp_for)"?
   gimple_set_location (parallel_region, loc);
 
   dump_printf_loc (MSG_OPTIMIZED_LOCATIONS, gimple_location (omp_for /* TODO or "stmt"? */),
@@ -1273,6 +1274,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
              complex sequential statements we may have seen.  */
           if (gang_single_seq != NULL && !only_simple_assignments)
             {
+	      //TODO Would it actually be useful to pass in the "LOC" of the first statement of that region?
               gimple *single_region
                 = make_gang_single_region (loc, NULL, gang_single_seq,
 					   -1,
@@ -1321,6 +1323,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
 	      //TODO It's unclear if this should also do the clauses mangling that "make_gang_parallel_loop_region" is doing (and should in fact be calling that function?)?
 	      gimple_seq seq = NULL;
 	      gimple_seq_add_stmt (&seq, stmt);
+	      //TODO Would it actually be useful to pass in the "LOC" of the first statement of that region?
 	      /* Using here the location information of the OMP_FOR instead of
 		 the outer 'kernels' construct is more useful.  */
 	      location_t omp_for_loc = gimple_location (omp_for);
@@ -1402,6 +1405,7 @@ decompose_kernels_region_body (gimple *kernels_region, tree kernels_clauses)
   /* Gather up any remaining gang-single statements.  */
   if (gang_single_seq != NULL)
     {
+      //TODO Would it actually be useful to pass in the "LOC" of the first statement of that region?
       gimple *single_region
         = make_gang_single_region (loc, NULL, gang_single_seq,
 				   -1,
