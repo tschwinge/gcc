@@ -1,10 +1,9 @@
 /* Test OpenACC 'kernels' construct decomposition.  */
 
 /* { dg-additional-options "-fopt-info-optimized-omp" } */
-/* { dg-additional-options "-O2" } for "parloops" */
+/* { dg-additional-options "-O2" } for "parloops".  */
 
-//TODO update accordingly
-/* See also "../../gfortran.dg/goacc/note-parallelism.f90".  */
+/* See also "../../gfortran.dg/goacc/kernels-decompose-1.f95".  */
 
 #pragma acc routine gang
 extern int
