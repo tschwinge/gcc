@@ -108,8 +108,7 @@ main ()
 
 #pragma acc kernels
   {
-    //TODO Doesn't the following have to be in its own "gang-single" region?
-    y = 3;
+    y = 3; /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
 
 #pragma acc loop independent /* { dg-message "note: assigned OpenACC gang worker loop parallelism" } */
     /* { dg-message "note: parallelized loop nest in OpenACC .kernels. construct" "" { target *-*-* } .-1 } */
@@ -119,7 +118,7 @@ main ()
     z = 2; /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
   }
 
-  #pragma acc kernels /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
+#pragma acc kernels /* { dg-message "note: beginning .gang-single. region in OpenACC .kernels. construct" } */
   ;
 
   return 0;
