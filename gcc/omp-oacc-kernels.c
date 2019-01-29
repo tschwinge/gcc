@@ -575,7 +575,7 @@ maybe_build_inner_data_region (location_t loc, gimple *body,
     {
       gcc_assert (inner_bind_vars != NULL);
       gimple *inner_data_region
-        = gimple_build_omp_target (NULL, GF_OMP_TARGET_KIND_OACC_DATA,
+        = gimple_build_omp_target (NULL, GF_OMP_TARGET_KIND_OACC_KERNELS_DATA,
                                    inner_data_clauses);
       gimple_set_location (inner_data_region, loc);
       /* Make sure __builtin_GOACC_data_end is called at the end.  */
